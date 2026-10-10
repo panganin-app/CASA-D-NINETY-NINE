@@ -1,0 +1,27 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function active() {
+      return request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.active == true;
+    }
+    function ownHouse(data) {
+      return active() && data.houseId ==
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.houseId;
+    }
+    match /users/{uid} {
+      allow read: if active() && request.auth.uid == uid;
+    }
+    match /ipl_bills/{id} { allow read: if ownHouse(resource.data); }
+    match /internet_bills/{id} { allow read: if ownHouse(resource.data); }
+    match /internet_subscriptions/{id} { allow read: if ownHouse(resource.data); }
+    match /ipl_payments/{id} { allow read: if ownHouse(resource.data); }
+    match /internet_payments/{id} { allow read: if ownHouse(resource.data); }
+    match /announcements/{id} { allow read: if active() && resource.data.status == 'PUBLISHED'; }
+    match /events/{id} { allow read: if active() && resource.data.status == 'PUBLISHED'; }
+    match /reports/{id} { allow read: if active() && resource.data.residentId == request.auth.uid; }
+    match /report_events/{id} { allow read: if active() && resource.data.residentId == request.auth.uid; }
+    match /notifications/{id} { allow read: if active() && resource.data.residentId == request.auth.uid; }
+    match /{document=**} { allow read, write: if false; }
+  }
+}

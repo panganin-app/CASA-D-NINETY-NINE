@@ -1,0 +1,17 @@
+{
+  "name": "casa-local-backend",
+  "private": true,
+  "scripts": {
+    "build": "npm --prefix backend/functions run build",
+    "test": "npm --prefix backend/functions test",
+    "emulators": "npm run build && node scripts/emulators.mjs start",
+    "test:rules": "node scripts/emulators.mjs test",
+    "test:billing": "npm run build && node scripts/emulators.mjs billing",
+    "seed:local": "node scripts/seed-local.mjs"
+  },
+  "devDependencies": {
+    "firebase-tools": "15.31.0",
+    "@firebase/rules-unit-testing": "5.0.2",
+    "firebase": "12.19.0"
+  }
+}

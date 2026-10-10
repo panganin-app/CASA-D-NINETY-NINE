@@ -1,0 +1,7 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Upload flow not implemented yet: deny all until server validation is available.
+    match /{path=**} { allow read, write: if false; }
+  }
+}
