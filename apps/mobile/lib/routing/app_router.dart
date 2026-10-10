@@ -7,6 +7,7 @@ import '../features/cctv/presentation/cctv_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/ipl/presentation/ipl_detail_screen.dart';
 import '../features/informasi/presentation/informasi_screens.dart';
+import '../features/keuangan/presentation/keuangan_screen.dart';
 import '../features/ipl/presentation/ipl_list_screen.dart';
 import '../features/reports/presentation/reports_screens.dart';
 import '../shared/widgets/coming_soon_screen.dart';
@@ -41,6 +42,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/cctv', builder: (context, state) => const CctvScreen()),
       GoRoute(path: '/informasi', builder: (context, state) => const InformasiScreen()),
+      GoRoute(path: '/keuangan', builder: (context, state) => const KeuanganScreen()),
       GoRoute(path: '/reports', builder: (context, state) => const ReportHistoryScreen()),
       GoRoute(path: '/reports/new', builder: (context, state) => const ReportCreateScreen()),
       GoRoute(path: '/profile', builder: (context, state) => const ComingSoonScreen(title: 'Profil')),

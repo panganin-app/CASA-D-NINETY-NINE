@@ -173,3 +173,14 @@ Folder project di-**rename** dari `CASA D'NINETY NINE` -> `CASA DNINETY NINE` (a
 - `flutter analyze`: 0 masalah. `flutter test`: 16/16 PASS (termasuk unit test parsing pengumuman/agenda dan format waktu).
 - **BELUM dites end-to-end** di simulator. Detail konten (layar baca penuh, bagikan, simpan agenda) belum dibuat -- saat ini daftar hanya menampilkan ringkasan.
 - Belum: Keuangan, Profil, detail pengumuman/agenda, dan fitur simpan/bagikan dari handoff.
+
+## 10 Oktober 2026 — Mobile: Keuangan (transparansi, data published)
+
+- Layar `/keuangan`: pilih periode (dropdown dari periode yang dipublikasikan, default terbaru), kartu pemasukan / pengeluaran / selisih, dan daftar transaksi periode itu.
+- Data dibaca lewat callable `listFinancePublications`. Backend hanya mengirim periode yang sudah dipublikasikan, dan client TIDAK menghitung ulang total dari transaksi, jadi angka yang tampil sama persis dengan yang dipublikasikan pengurus.
+- Format rupiah memakai helper yang sama dengan IPL.
+- `flutter analyze`: 0 masalah. `flutter test`: 19/19 PASS (termasuk unit test parsing periode dan transaksi).
+- **Belum sesuai mockup sepenuhnya**: mockup `resident-finance-v1.png` menampilkan "Saldo Awal" dan "Saldo Akhir" serta diagram donat. Backend belum menyediakan saldo awal/akhir, jadi belum ditampilkan agar tidak menampilkan angka yang tidak dihitung backend. Diagram belum dibuat. Perlu keputusan: apakah saldo awal/akhir masuk ke ringkasan periode di backend.
+- Keuangan saat ini berupa rute sendiri, belum masuk tab Informasi seperti di handoff. Perlu dipindah saat tab Informasi diubah.
+- **BELUM dites end-to-end** di simulator.
+- Belum: Profil (satu-satunya layar mobile yang masih placeholder), dan detail transaksi.
