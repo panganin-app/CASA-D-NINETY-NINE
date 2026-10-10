@@ -8,9 +8,9 @@ import '../features/home/presentation/home_screen.dart';
 import '../features/ipl/presentation/ipl_detail_screen.dart';
 import '../features/informasi/presentation/informasi_screens.dart';
 import '../features/keuangan/presentation/keuangan_screen.dart';
+import '../features/profil/presentation/profil_screen.dart';
 import '../features/ipl/presentation/ipl_list_screen.dart';
 import '../features/reports/presentation/reports_screens.dart';
-import '../shared/widgets/coming_soon_screen.dart';
 
 /// Protected routing (PRD §9.4) -- redirect berbasis status login.
 /// SEMUA route (kecuali /login) butuh user ter-autentikasi. Role/permission
@@ -45,7 +45,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/keuangan', builder: (context, state) => const KeuanganScreen()),
       GoRoute(path: '/reports', builder: (context, state) => const ReportHistoryScreen()),
       GoRoute(path: '/reports/new', builder: (context, state) => const ReportCreateScreen()),
-      GoRoute(path: '/profile', builder: (context, state) => const ComingSoonScreen(title: 'Profil')),
+      GoRoute(path: '/profile', builder: (context, state) => const ProfilScreen()),
     ],
   );
 });

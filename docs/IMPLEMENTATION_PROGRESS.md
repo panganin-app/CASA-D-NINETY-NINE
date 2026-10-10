@@ -184,3 +184,14 @@ Folder project di-**rename** dari `CASA D'NINETY NINE` -> `CASA DNINETY NINE` (a
 - Keuangan saat ini berupa rute sendiri, belum masuk tab Informasi seperti di handoff. Perlu dipindah saat tab Informasi diubah.
 - **BELUM dites end-to-end** di simulator.
 - Belum: Profil (satu-satunya layar mobile yang masih placeholder), dan detail transaksi.
+
+## 10 Oktober 2026 — Mobile: Profil (data warga, anggota keluarga, kendaraan)
+
+- Layar `/profile`: header (inisial, nama, badge Kepala Keluarga, rumah), Data Warga (telepon bisa diubah, email kontak), daftar anggota keluarga, daftar kendaraan, dan tombol keluar.
+- Data dibaca dari `users`/`residents` (rules membatasi ke pemilik) dan dari callable `listFamilyMembers`/`listVehicles`. Perubahan telepon lewat `updateResidentProfile` dengan `expectedVersion`; kalau versinya sudah usang, backend menolak dan app menampilkan pesannya.
+- Placeholder `ComingSoonScreen` dihapus karena tidak dipakai lagi oleh rute mana pun. Semua layar resident sekarang sudah punya implementasi (walau belum diuji di simulator).
+- `flutter analyze`: 0 masalah. `flutter test`: 25/25 PASS.
+- **Belum dibangun dari mockup**: "Ubah PIN" dan "Perangkat Aktif" (auth saat ini email+password, tidak ada PIN; perangkat aktif tidak ada di backend). "Status Hunian" juga belum ada sebagai field. Hubungi Pengurus dan Kebijakan Privasi belum dibuat. Keluar sudah berfungsi.
+- Anggota keluarga dan kendaraan masih read-only di app. Tambah/ubah/hapus lewat app belum dibuat (backend sudah siap).
+- Email yang tampil adalah email login Firebase Auth. Field `email` di backend `residents` adalah kontak terpisah yang belum ditampilkan.
+- **BELUM dites end-to-end** di simulator.
