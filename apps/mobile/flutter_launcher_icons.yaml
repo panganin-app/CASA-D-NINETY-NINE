@@ -1,0 +1,15 @@
+# Config utk flutter_launcher_icons -- jalankan ulang
+# `dart run flutter_launcher_icons` dari folder apps/mobile setelah brand
+# logo berubah. Sumber: apps/mobile/assets/icon/app_icon.png (di-crop +
+# dipadding dari assets/brand/casa-dninetynine-logo-official-no-tagline.png
+# yang asli -- cuma mark house+99+leaf, teks wordmark dibuang karena gak
+# kebaca di ukuran icon kecil).
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/app_icon.png"
+  # Background putih (sama kayak logo resmi) -- bukan transparent, iOS
+  # nolak icon dengan alpha channel.
+  remove_alpha_ios: true
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/icon/app_icon.png"
