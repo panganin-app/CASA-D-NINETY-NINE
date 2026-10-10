@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/casa_tokens.dart';
 import '../data/informasi_models.dart';
 import '../providers/informasi_providers.dart';
+import 'package:go_router/go_router.dart';
 
 /// Layar Informasi: dua tab, Pengumuman dan Agenda (PRD §5.2).
 class InformasiScreen extends StatelessWidget {
@@ -100,7 +101,10 @@ class _ContentListState extends ConsumerState<_ContentList> {
               child: Center(child: CircularProgressIndicator()),
             );
           }
-          return _ItemCard(item: state.items[i]);
+          return _ItemCard(
+            item: state.items[i],
+            onTap: () => context.push('/informasi/detail', extra: (state.items[i], widget.provider == eventsListProvider)),
+          );
         },
       ),
     );
@@ -108,14 +112,18 @@ class _ContentListState extends ConsumerState<_ContentList> {
 }
 
 class _ItemCard extends StatelessWidget {
-  const _ItemCard({required this.item});
+  const _ItemCard({required this.item, required this.onTap});
 
   final PublishedItem item;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: Padding(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(CasaTokens.radiusLg),
+        onTap: onTap,
+        child: Padding(
         padding: EdgeInsets.all(CasaTokens.spacing4),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -133,6 +141,7 @@ class _ItemCard extends StatelessWidget {
             Text(item.description, maxLines: 3, overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodyMedium),
           ],
+        ),
         ),
       ),
     );
@@ -155,6 +164,43 @@ class _Message extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.all(CasaTokens.layoutMobileContentPadding * 2),
       child: Text(text, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyMedium),
+    );
+  }
+}
+
+/// Detail pengumuman atau agenda. Data dikirim dari daftar (lihat router),
+/// jadi tidak perlu panggilan backend tambahan.
+class InformasiDetailScreen extends StatelessWidget {
+  const InformasiDetailScreen({super.key, required this.item, required this.isEvent});
+
+  final PublishedItem item;
+  final bool isEvent;
+
+  @override
+  Widget build(BuildContext context) {
+    final start = item.startsAt?.toLocal();
+    String two(int n) => n.toString().padLeft(2, '0');
+    return Scaffold(
+      appBar: AppBar(title: Text(isEvent ? 'Agenda' : 'Pengumuman')),
+      body: ListView(
+        padding: EdgeInsets.all(CasaTokens.layoutMobileContentPadding),
+        children: [
+          Text(item.title, style: Theme.of(context).textTheme.headlineMedium),
+          if (start != null) ...[
+            SizedBox(height: CasaTokens.spacing2),
+            Text(
+              '${two(start.day)}/${two(start.month)}/${start.year} ${two(start.hour)}:${two(start.minute)}',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ],
+          if (item.location != null && item.location!.isNotEmpty) ...[
+            SizedBox(height: CasaTokens.spacing1),
+            Text(item.location!, style: Theme.of(context).textTheme.bodyMedium),
+          ],
+          SizedBox(height: CasaTokens.spacing4),
+          Text(item.description, style: Theme.of(context).textTheme.bodyLarge),
+        ],
+      ),
     );
   }
 }

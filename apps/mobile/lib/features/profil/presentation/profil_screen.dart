@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -186,8 +187,16 @@ class _FamilySection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final members = ref.watch(familyMembersProvider);
+    final isHead = ref.watch(householdProvider).value?.isHead ?? false;
     return _SectionCard(
       title: 'Anggota Keluarga',
+      action: isHead
+          ? TextButton.icon(
+              onPressed: () => _openFamilyForm(context, ref, null),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Tambah'),
+            )
+          : null,
       child: members.when(
         loading: () => const LinearProgressIndicator(),
         error: (e, _) => const _Note(text: 'Gagal memuat anggota keluarga.', isError: true),
@@ -199,12 +208,95 @@ class _FamilySection extends ConsumerWidget {
                     ListTile(
                       leading: const Icon(Icons.person_rounded),
                       title: Text(m.fullName),
-                      subtitle: Text(m.relationship),
+                      subtitle: Text(Relationship.labelOf(m.relationship)),
+                      trailing: isHead
+                          ? PopupMenuButton<String>(
+                              onSelected: (v) => v == 'edit'
+                                  ? _openFamilyForm(context, ref, m)
+                                  : _removeFamily(context, ref, m),
+                              itemBuilder: (_) => const [
+                                PopupMenuItem(value: 'edit', child: Text('Ubah')),
+                                PopupMenuItem(value: 'delete', child: Text('Hapus')),
+                              ],
+                            )
+                          : null,
                     ),
                 ],
               ),
       ),
     );
+  }
+
+  Future<void> _openFamilyForm(BuildContext context, WidgetRef ref, FamilyMemberItem? existing) async {
+    final nameCtrl = TextEditingController(text: existing?.fullName ?? '');
+    final phoneCtrl = TextEditingController(text: existing?.phone ?? '');
+    var rel = existing == null ? Relationship.anak : Relationship.values.firstWhere(
+          (r) => r.code == existing.relationship,
+          orElse: () => Relationship.lainnya,
+        );
+    final requestId = _newRequestId();
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) => AlertDialog(
+          title: Text(existing == null ? 'Tambah anggota keluarga' : 'Ubah anggota keluarga'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Nama lengkap')),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<Relationship>(
+                  initialValue: rel,
+                  decoration: const InputDecoration(labelText: 'Hubungan'),
+                  items: [for (final r in Relationship.values) DropdownMenuItem(value: r, child: Text(r.label))],
+                  onChanged: (v) => setD(() => rel = v ?? rel),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: phoneCtrl,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(labelText: 'Telepon (opsional)'),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Simpan')),
+          ],
+        ),
+      ),
+    );
+    final name = nameCtrl.text.trim();
+    final phone = phoneCtrl.text.trim();
+    nameCtrl.dispose();
+    phoneCtrl.dispose();
+    if (saved != true || name.isEmpty || !context.mounted) return;
+
+    try {
+      final repo = ref.read(profilRepositoryProvider);
+      if (existing == null) {
+        await repo.saveFamilyMember(requestId: requestId, fullName: name, relationship: rel, phone: phone.isEmpty ? null : phone);
+      } else {
+        await repo.updateFamilyMember(member: existing, fullName: name, relationship: rel, phone: phone.isEmpty ? null : phone);
+      }
+      ref.invalidate(familyMembersProvider);
+    } on AppException catch (e) {
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
+  Future<void> _removeFamily(BuildContext context, WidgetRef ref, FamilyMemberItem m) async {
+    final ok = await _confirm(context, 'Hapus ${m.fullName} dari daftar anggota keluarga?');
+    if (!ok) return;
+    try {
+      await ref.read(profilRepositoryProvider).removeFamilyMember(m);
+      ref.invalidate(familyMembersProvider);
+    } on AppException catch (e) {
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
   }
 }
 
@@ -214,8 +306,16 @@ class _VehicleSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final vehicles = ref.watch(vehiclesProvider);
+    final isHead = ref.watch(householdProvider).value?.isHead ?? false;
     return _SectionCard(
       title: 'Kendaraan',
+      action: isHead
+          ? TextButton.icon(
+              onPressed: () => _openVehicleForm(context, ref, null),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Tambah'),
+            )
+          : null,
       child: vehicles.when(
         loading: () => const LinearProgressIndicator(),
         error: (e, _) => const _Note(text: 'Gagal memuat kendaraan.', isError: true),
@@ -227,20 +327,143 @@ class _VehicleSection extends ConsumerWidget {
                     ListTile(
                       leading: const Icon(Icons.directions_car_rounded),
                       title: Text(v.plateNumber),
-                      subtitle: Text([v.type, v.brand, v.color].whereType<String>().where((s) => s.isNotEmpty).join(' · ')),
+                      subtitle: Text(
+                        [VehicleType.labelOf(v.type), v.brand, v.color].whereType<String>().where((x) => x.isNotEmpty).join(' · '),
+                      ),
+                      trailing: isHead
+                          ? PopupMenuButton<String>(
+                              onSelected: (val) => val == 'edit'
+                                  ? _openVehicleForm(context, ref, v)
+                                  : _removeVehicle(context, ref, v),
+                              itemBuilder: (_) => const [
+                                PopupMenuItem(value: 'edit', child: Text('Ubah')),
+                                PopupMenuItem(value: 'delete', child: Text('Hapus')),
+                              ],
+                            )
+                          : null,
                     ),
                 ],
               ),
       ),
     );
   }
+
+  Future<void> _openVehicleForm(BuildContext context, WidgetRef ref, VehicleItem? existing) async {
+    final plateCtrl = TextEditingController(text: existing?.plateNumber ?? '');
+    final brandCtrl = TextEditingController(text: existing?.brand ?? '');
+    final colorCtrl = TextEditingController(text: existing?.color ?? '');
+    var type = existing == null ? VehicleType.mobil : VehicleType.values.firstWhere(
+          (t) => t.code == existing.type,
+          orElse: () => VehicleType.lainnya,
+        );
+    final requestId = _newRequestId();
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) => AlertDialog(
+          title: Text(existing == null ? 'Tambah kendaraan' : 'Ubah kendaraan'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: plateCtrl,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: const InputDecoration(labelText: 'Nomor plat'),
+                ),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<VehicleType>(
+                  initialValue: type,
+                  decoration: const InputDecoration(labelText: 'Jenis'),
+                  items: [for (final t in VehicleType.values) DropdownMenuItem(value: t, child: Text(t.label))],
+                  onChanged: (v) => setD(() => type = v ?? type),
+                ),
+                const SizedBox(height: 8),
+                TextField(controller: brandCtrl, decoration: const InputDecoration(labelText: 'Merek (opsional)')),
+                const SizedBox(height: 8),
+                TextField(controller: colorCtrl, decoration: const InputDecoration(labelText: 'Warna (opsional)')),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Simpan')),
+          ],
+        ),
+      ),
+    );
+    final plate = plateCtrl.text.trim();
+    final brand = brandCtrl.text.trim();
+    final color = colorCtrl.text.trim();
+    plateCtrl.dispose();
+    brandCtrl.dispose();
+    colorCtrl.dispose();
+    if (saved != true || plate.isEmpty || !context.mounted) return;
+
+    try {
+      final repo = ref.read(profilRepositoryProvider);
+      if (existing == null) {
+        await repo.saveVehicle(
+          requestId: requestId,
+          plateNumber: plate,
+          type: type,
+          brand: brand.isEmpty ? null : brand,
+          color: color.isEmpty ? null : color,
+        );
+      } else {
+        await repo.updateVehicle(
+          vehicle: existing,
+          plateNumber: plate,
+          type: type,
+          brand: brand.isEmpty ? null : brand,
+          color: color.isEmpty ? null : color,
+        );
+      }
+      ref.invalidate(vehiclesProvider);
+    } on AppException catch (e) {
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
+  Future<void> _removeVehicle(BuildContext context, WidgetRef ref, VehicleItem v) async {
+    final ok = await _confirm(context, 'Hapus kendaraan ${v.plateNumber} dari daftar?');
+    if (!ok) return;
+    try {
+      await ref.read(profilRepositoryProvider).removeVehicle(v);
+      ref.invalidate(vehiclesProvider);
+    } on AppException catch (e) {
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+}
+
+Future<bool> _confirm(BuildContext context, String text) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      content: Text(text),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
+        FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Ya')),
+      ],
+    ),
+  );
+  return ok == true;
+}
+
+/// requestId acak per dialog -- retry tidak membuat data ganda (backend idempoten).
+String _newRequestId() {
+  final r = Random.secure();
+  return List.generate(16, (_) => r.nextInt(16).toRadixString(16)).join();
 }
 
 class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.title, required this.child});
+  const _SectionCard({required this.title, required this.child, this.action});
 
   final String title;
   final Widget child;
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
@@ -249,8 +472,13 @@ class _SectionCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: EdgeInsets.all(CasaTokens.spacing4),
-            child: Text(title, style: Theme.of(context).textTheme.titleLarge),
+            padding: EdgeInsets.fromLTRB(CasaTokens.spacing4, CasaTokens.spacing2, CasaTokens.spacing2, 0),
+            child: Row(
+              children: [
+                Expanded(child: Text(title, style: Theme.of(context).textTheme.titleLarge)),
+                ?action,
+              ],
+            ),
           ),
           child,
         ],

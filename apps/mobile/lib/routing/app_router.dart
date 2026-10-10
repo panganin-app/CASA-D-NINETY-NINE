@@ -8,6 +8,7 @@ import '../features/home/presentation/home_screen.dart';
 import '../features/tagihan/data/bill_models.dart';
 import '../features/tagihan/presentation/bill_detail_screen.dart';
 import '../features/tagihan/presentation/internet_screen.dart';
+import '../features/informasi/data/informasi_models.dart';
 import '../features/informasi/presentation/informasi_screens.dart';
 import '../features/keuangan/presentation/keuangan_screen.dart';
 import '../features/auth/presentation/change_password_screen.dart';
@@ -52,6 +53,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/cctv', builder: (context, state) => const CctvScreen()),
       GoRoute(path: '/informasi', builder: (context, state) => const InformasiScreen()),
       GoRoute(path: '/keuangan', builder: (context, state) => const KeuanganScreen()),
+      GoRoute(
+        path: '/informasi/detail',
+        builder: (context, state) {
+          final (item, isEvent) = state.extra as (PublishedItem, bool);
+          return InformasiDetailScreen(item: item, isEvent: isEvent);
+        },
+      ),
       GoRoute(path: '/reports', builder: (context, state) => const ReportHistoryScreen()),
       GoRoute(path: '/reports/new', builder: (context, state) => const ReportCreateScreen()),
       GoRoute(path: '/profile', builder: (context, state) => const ProfilScreen()),

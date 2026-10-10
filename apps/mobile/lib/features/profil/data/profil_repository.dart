@@ -53,4 +53,75 @@ class ProfilRepository {
       'expectedVersion': expectedVersion,
     });
   }
+
+  /// Tambah anggota keluarga (hanya kepala keluarga, dibatasi backend).
+  Future<void> saveFamilyMember({
+    required String requestId,
+    required String fullName,
+    required Relationship relationship,
+    String? phone,
+  }) async {
+    await _functions.call('saveFamilyMember', {
+      'requestId': requestId,
+      'fullName': fullName,
+      'relationship': relationship.code,
+      'phone': ?phone,
+    });
+  }
+
+  Future<void> updateFamilyMember({
+    required FamilyMemberItem member,
+    required String fullName,
+    required Relationship relationship,
+    String? phone,
+  }) async {
+    await _functions.call('saveFamilyMember', {
+      'familyMemberId': member.id,
+      'expectedVersion': member.version,
+      'fullName': fullName,
+      'relationship': relationship.code,
+      'phone': ?phone,
+    });
+  }
+
+  Future<void> removeFamilyMember(FamilyMemberItem member) async {
+    await _functions.call('removeFamilyMember', {'familyMemberId': member.id, 'expectedVersion': member.version});
+  }
+
+  Future<void> saveVehicle({
+    required String requestId,
+    required String plateNumber,
+    required VehicleType type,
+    String? brand,
+    String? color,
+  }) async {
+    await _functions.call('saveVehicle', {
+      'requestId': requestId,
+      'plateNumber': plateNumber,
+      'type': type.code,
+      'brand': ?brand,
+      'color': ?color,
+    });
+  }
+
+  Future<void> updateVehicle({
+    required VehicleItem vehicle,
+    required String plateNumber,
+    required VehicleType type,
+    String? brand,
+    String? color,
+  }) async {
+    await _functions.call('saveVehicle', {
+      'vehicleId': vehicle.id,
+      'expectedVersion': vehicle.version,
+      'plateNumber': plateNumber,
+      'type': type.code,
+      'brand': ?brand,
+      'color': ?color,
+    });
+  }
+
+  Future<void> removeVehicle(VehicleItem vehicle) async {
+    await _functions.call('removeVehicle', {'vehicleId': vehicle.id, 'expectedVersion': vehicle.version});
+  }
 }
