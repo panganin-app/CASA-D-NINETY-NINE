@@ -2,6 +2,17 @@ import {createHash} from 'node:crypto';
 import {getFirestore, Timestamp, Transaction} from 'firebase-admin/firestore';
 import {HttpsError} from 'firebase-functions/v2/https';
 import {IPL_AMOUNT, INTERNET_PACKAGES, extendMonth} from './domain';
+import {readSystemSettings} from './system-settings';
+
+// Jam 23:59:59 WIB hari ke-`day` bulan `period` -- WIB = UTC+7 tanpa DST,
+// jadi 23:59:59 WIB = 16:59:59 UTC HARI KALENDER YANG SAMA (gak pernah
+// mundur/maju tanggal). Dipakai buat dueDate IPL (terikat ke period
+// kalender); internet pakai +N hari relatif dari createdAt (lihat
+// pemanggilnya), bukan fungsi ini.
+function jakartaDueDate(period: string, day: number): Timestamp {
+  const [y, m] = period.split('-').map(Number);
+  return Timestamp.fromMillis(Date.UTC(y, m - 1, day, 16, 59, 59));
+}
 
 function fail(code: 'invalid-argument'|'permission-denied'|'failed-precondition'|'already-exists'|'not-found', message: string): never {
   throw new HttpsError(code, message);
@@ -63,7 +74,10 @@ export async function createBill(uid: string, input: unknown) {
     const openRef = db.doc(`internet_open_bills/${houseId}`);
     if (type === 'internet' && (await tx.get(openRef)).exists) fail('failed-precondition', 'Selesaikan tagihan internet yang masih terbuka.');
     const amount = packageId ? INTERNET_PACKAGES[packageId as keyof typeof INTERNET_PACKAGES].amount : IPL_AMOUNT;
-    const bill = {houseId, residentId: house.primaryResidentId, period, packageId, amount, bank:'BCA', status:'UNPAID', createdAt:Timestamp.now()};
+    const settings = await readSystemSettings(tx);
+    const now = Timestamp.now();
+    const dueDate = type === 'ipl' ? jakartaDueDate(period, settings.iplDueDateDays) : Timestamp.fromMillis(now.toMillis() + settings.internetDueDateDays * 86400000);
+    const bill = {houseId, residentId: house.primaryResidentId, period, packageId, amount, bank:'BCA', status:'UNPAID', dueDate, createdAt:now};
     tx.create(ref, bill);
     if (type === 'internet') tx.create(openRef, {billId});
     audit(tx, uid, 'CREATE_BILL', billId, {kind:type, amount});

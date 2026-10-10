@@ -182,3 +182,40 @@ export async function listAdminRecords(uid:string,input:unknown) {
     return {items,nextCursor:snapshot.size>limit?docs.at(-1)!.id:null};
   });
 }
+
+// Audit log viewer (M7). BEDA dari listAdminRecords -- audit_logs ID-nya
+// auto-generated (random), BUKAN deterministik, jadi urut berdasarkan ID
+// dokumen gak ada artinya. Urut `createdAt` DESC (terbaru dulu, wajar buat
+// viewer log), cursor berupa ISO string createdAt dokumen terakhir yang
+// dilihat (BUKAN document ID).
+function isoTimestamp(value:unknown):Date {
+  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/.test(value)) throw new HttpsError('invalid-argument','Cursor tidak valid.');
+  const parsed=new Date(value);
+  if(!Number.isFinite(parsed.getTime())) throw new HttpsError('invalid-argument','Cursor tidak valid.');
+  return parsed;
+}
+export async function listAuditLogs(uid:string,input:unknown) {
+  const data=payload(input,['limit','afterCreatedAt','action','resourceId']);
+  const limit=data.limit??20;
+  if(typeof limit!=='number'||!Number.isInteger(limit)||limit<1||limit>50) throw new HttpsError('invalid-argument','Limit 1–50.');
+  const after=data.afterCreatedAt===undefined?null:isoTimestamp(data.afterCreatedAt);
+  const action=data.action===undefined?null:text(data.action,60);
+  const resourceId=data.resourceId===undefined?null:identifier(data.resourceId);
+  const db=getFirestore();
+  return db.runTransaction(async tx=>{
+    await requireAdmin(tx,uid);
+    let query=db.collection('audit_logs').orderBy('createdAt','desc');
+    if(resourceId) query=query.where('resourceId','==',resourceId);
+    if(action) query=query.where('action','==',action);
+    if(after) query=query.startAfter(Timestamp.fromDate(after));
+    const snapshot=await tx.get(query.limit(limit+1));
+    const docs=snapshot.docs.slice(0,limit);
+    return {
+      items:docs.map(doc=>{
+        const r=doc.data();
+        return {id:doc.id,actorId:r.actorId,actorRole:r.actorRole??null,action:r.action,resourceId:r.resourceId,oldValue:r.oldValue??null,newValue:r.newValue??r.details??null,createdAt:r.createdAt};
+      }),
+      nextCursor:snapshot.size>limit?(docs.at(-1)!.data().createdAt as Timestamp).toDate().toISOString():null,
+    };
+  });
+}

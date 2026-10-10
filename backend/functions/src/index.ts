@@ -55,6 +55,7 @@ export const setResidentActive = callable(operations.setResidentActive);
 export const activateInternetService = callable(operations.activateInternetService);
 export const listAdminRecords = callable(operations.listAdminRecords);
 export const transferHouse = callable(operations.transferHouse);
+export const listAuditLogs = callable(operations.listAuditLogs);
 
 import * as household from './household';
 export const updateResidentProfile = callable(household.updateResidentProfile);
@@ -64,6 +65,13 @@ export const listFamilyMembers = callable(household.listFamilyMembers);
 export const saveVehicle = callable(household.saveVehicle);
 export const removeVehicle = callable(household.removeVehicle);
 export const listVehicles = callable(household.listVehicles);
+
+import * as systemSettings from './system-settings';
+export const getSystemSettings = callable(systemSettings.getSystemSettings);
+export const updateSystemSettings = callable(systemSettings.updateSystemSettings);
+
+import {updateInternetSubscriptionStatuses as updateInternetSubscriptionStatusesService} from './internet-lifecycle';
+export const updateInternetSubscriptionStatuses = callable(updateInternetSubscriptionStatusesService);
 
 import * as finance from './finance';
 import * as community from './community';
