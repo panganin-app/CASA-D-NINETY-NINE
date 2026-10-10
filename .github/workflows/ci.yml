@@ -70,8 +70,34 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # BELUM ADA job admin/mobile -- apps/admin dan apps/mobile masih 0 baris
-  # kode (README placeholder doang, lihat IMPLEMENTATION_PROGRESS.md).
-  # Tambahkan job terpisah begitu salah satunya mulai di-scaffold, JANGAN
-  # ditaruh di sini dulu (bakal selalu gagal karena gak ada apa pun buat
-  # di-lint/build/test).
+  mobile:
+    name: Mobile (Flutter) analyze + test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.5'
+          channel: stable
+      # Regenerate token lalu DIFF terhadap yang di-commit -- nangkep kasus
+      # tokens.json diubah tapi casa_tokens.dart lupa di-regenerate ulang
+      # (npm run generate:tokens).
+      - run: node scripts/generate-design-tokens.js
+      - run: git diff --exit-code apps/mobile/lib/core/theme/casa_tokens.dart
+      - run: flutter pub get
+        working-directory: apps/mobile
+      - run: flutter analyze
+        working-directory: apps/mobile
+      - run: flutter test
+        working-directory: apps/mobile
+
+  # BELUM ADA job admin -- apps/admin masih 0 baris kode (README
+  # placeholder doang, lihat IMPLEMENTATION_PROGRESS.md). Tambahkan job
+  # terpisah begitu mulai di-scaffold.
+  #
+  # Mobile job di atas SENGAJA cuma analyze+test (Dart-level, jalan di
+  # Linux) -- BUKAN build iOS/Android asli (butuh runner macOS buat iOS,
+  # mahal & lambat buat tiap push). Build native + jalan di simulator
+  # beneran (sudah dites manual 10 Okt 2026 di iPhone 18 Pro Simulator,
+  # lihat IMPLEMENTATION_PROGRESS.md) tetap langkah manual/rilis, bukan
+  # gate CI tiap push.

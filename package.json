@@ -8,7 +8,8 @@
     "test:rules": "node scripts/emulators.mjs test",
     "test:billing": "npm run build && node scripts/emulators.mjs billing",
     "seed:local": "node scripts/seed-local.mjs",
-    "drill:backup-restore": "npm run build && node scripts/backup-restore-drill.mjs"
+    "drill:backup-restore": "npm run build && node scripts/backup-restore-drill.mjs",
+    "generate:tokens": "node scripts/generate-design-tokens.js"
   },
   "devDependencies": {
     "firebase-tools": "15.31.0",

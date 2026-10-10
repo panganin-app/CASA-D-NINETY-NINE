@@ -1,5 +1,9 @@
 node_modules/
-lib/
+# SENGAJA pakai path absolut (leading slash) + spesifik -- pola bare
+# "lib/" nyapu SEMUA folder bernama "lib" di mana pun di repo, termasuk
+# apps/mobile/lib/ (source code Flutter, BUKAN build output). Ketauan 10
+# Okt 2026 pas scaffold mobile app -- hampir ke-ignore semua.
+/backend/functions/lib/
 .env*
 !.env.example
 .secret.local
