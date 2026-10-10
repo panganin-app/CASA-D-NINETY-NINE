@@ -13,3 +13,6 @@ firebase-debug.*
 .DS_Store
 
 .firebase.*.local.json
+/apps/admin/.next/
+/apps/admin/out/
+/apps/admin/tsconfig.tsbuildinfo

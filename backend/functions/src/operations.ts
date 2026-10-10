@@ -170,7 +170,7 @@ export async function listAdminRecords(uid:string,input:unknown) {
     const items=docs.map(doc=>{
       const r=doc.data();
       // Explicit fields: no proof payloads, contacts, bank configuration, or future private fields.
-      if(data.resource==='houses') return {id:doc.id,label:r.label??doc.id,active:r.active,primaryResidentId:r.primaryResidentId};
+      if(data.resource==='houses') return {id:doc.id,label:r.label??doc.id,active:r.active,primaryResidentId:r.primaryResidentId,occupancyType:r.occupancyType??null};
       if(data.resource==='residents') return {id:doc.id,fullName:r.fullName,houseId:r.houseId,status:r.status};
       if(data.resource==='reports') return {id:doc.id,residentId:r.residentId,houseId:r.houseId,title:r.title,description:r.description,category:r.category,status:r.status,version:r.version,createdAt:r.createdAt};
       if(['announcements','events'].includes(String(data.resource))) return {id:doc.id,title:r.title,description:r.description,status:r.status,version:r.version,...(data.resource==='events'?{startsAt:r.startsAt,endsAt:r.endsAt,location:r.location}:{})};

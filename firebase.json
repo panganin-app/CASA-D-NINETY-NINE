@@ -1,13 +1,61 @@
 {
-  "functions": [{"source": "backend/functions", "codebase": "casa", "runtime": "nodejs22"}],
-  "firestore": {"rules": "firebase/firestore/firestore.rules", "indexes": "firebase/firestore/firestore.indexes.json"},
-  "storage": {"rules": "firebase/storage/storage.rules"},
+  "functions": [
+    {
+      "source": "backend/functions",
+      "codebase": "casa",
+      "runtime": "nodejs22"
+    }
+  ],
+  "firestore": {
+    "rules": "firebase/firestore/firestore.rules",
+    "indexes": "firebase/firestore/firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "firebase/storage/storage.rules"
+  },
   "emulators": {
-    "auth": {"host": "127.0.0.1", "port": 9099},
-    "firestore": {"host": "127.0.0.1", "port": 8080},
-    "functions": {"host": "127.0.0.1", "port": 5001},
-    "storage": {"host": "127.0.0.1", "port": 9199},
-    "ui": {"enabled": true, "host": "127.0.0.1", "port": 4000},
+    "auth": {
+      "host": "127.0.0.1",
+      "port": 9099
+    },
+    "firestore": {
+      "host": "127.0.0.1",
+      "port": 8080
+    },
+    "functions": {
+      "host": "127.0.0.1",
+      "port": 5001
+    },
+    "storage": {
+      "host": "127.0.0.1",
+      "port": 9199
+    },
+    "ui": {
+      "enabled": true,
+      "host": "127.0.0.1",
+      "port": 4000
+    },
     "singleProjectMode": true
+  },
+  "hosting": {
+    "public": "apps/admin/out",
+    "cleanUrls": true,
+    "trailingSlash": true,
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "headers": [
+      {
+        "source": "**/*.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      }
+    ]
   }
 }

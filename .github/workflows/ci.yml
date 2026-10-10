@@ -91,13 +91,26 @@ jobs:
       - run: flutter test
         working-directory: apps/mobile
 
-  # BELUM ADA job admin -- apps/admin masih 0 baris kode (README
-  # placeholder doang, lihat IMPLEMENTATION_PROGRESS.md). Tambahkan job
-  # terpisah begitu mulai di-scaffold.
-  #
   # Mobile job di atas SENGAJA cuma analyze+test (Dart-level, jalan di
   # Linux) -- BUKAN build iOS/Android asli (butuh runner macOS buat iOS,
   # mahal & lambat buat tiap push). Build native + jalan di simulator
   # beneran (sudah dites manual 10 Okt 2026 di iPhone 18 Pro Simulator,
   # lihat IMPLEMENTATION_PROGRESS.md) tetap langkah manual/rilis, bukan
   # gate CI tiap push.
+
+  admin:
+    name: Admin Web typecheck + static build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm --prefix apps/admin ci
+      - run: npm --prefix apps/admin run typecheck
+      - run: npm --prefix apps/admin run build
+      # Informational: advisory high dari @grpc/grpc-js hanya masuk tree build
+      # Node (firebase), TIDAK ikut ke bundle browser (dicek 10 Okt 2026).
+      - run: npm --prefix apps/admin audit --audit-level=high
+        continue-on-error: true
+

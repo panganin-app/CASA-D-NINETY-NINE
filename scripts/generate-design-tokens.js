@@ -12,6 +12,7 @@ const path = require("path");
 
 const TOKENS_PATH = path.join(__dirname, "..", "packages", "design_tokens", "tokens.json");
 const DART_OUT = path.join(__dirname, "..", "apps", "mobile", "lib", "core", "theme", "casa_tokens.dart");
+const CSS_OUT = path.join(__dirname, "..", "apps", "admin", "src", "styles", "tokens.css");
 
 const tokens = JSON.parse(fs.readFileSync(TOKENS_PATH, "utf8"));
 
@@ -53,6 +54,7 @@ function parseDuration(value) {
 
 const seenTopLevel = new Set();
 const lines = [];
+const cssVars = [];
 
 function walk(node, pathSegs) {
     if (node && typeof node === "object" && "$value" in node) {
@@ -60,6 +62,9 @@ function walk(node, pathSegs) {
         const name = toCamel(pathSegs);
         const type = node.$type;
         const value = node.$value;
+        const cssName = "--" + pathSegs.map((seg) => seg.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase()).join("-");
+        if (type === "color" || type === "dimension" || type === "number" || type === "duration") cssVars.push(`  ${cssName}: ${type === "duration" ? value : type === "color" ? value : type === "dimension" ? value : value};`);
+        else if (type === "fontFamily") cssVars.push(`  ${cssName}: ${value};`);
         if (type === "color") lines.push(`  static const Color ${name} = ${hexToDartColor(value)};`);
         else if (type === "dimension") lines.push(`  static const double ${name} = ${parsePx(value)};`);
         else if (type === "number") lines.push(`  static const int ${name} = ${value};`);
@@ -102,4 +107,11 @@ ${lines.join("\n")}
 
 fs.mkdirSync(path.dirname(DART_OUT), { recursive: true });
 fs.writeFileSync(DART_OUT, dart);
+const css = `/* GENERATED -- JANGAN diedit manual. Sumber: packages/design_tokens/tokens.json. Regenerate: npm run generate:tokens */
+:root {
+${cssVars.join("\n")}
+}
+`;
+fs.mkdirSync(path.dirname(CSS_OUT), { recursive: true });
+fs.writeFileSync(CSS_OUT, css);
 console.log(`Ditulis ${DART_OUT} (${lines.length} token, ${expectedTopLevel.length} kategori: ${expectedTopLevel.join(", ")})`);
