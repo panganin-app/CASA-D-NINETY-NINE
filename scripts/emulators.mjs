@@ -19,7 +19,7 @@ if (mode === 'billing') {
   writeFileSync('.firebase.test.local.json', JSON.stringify(config));
 }
 const args = mode === 'billing'
-  ? ['emulators:exec', '--config', '.firebase.test.local.json', '--project','demo-casa-billing','node --test backend/functions/test/billing.integration.cjs tests/security/rules.test.mjs']
+  ? ['emulators:exec', '--config', '.firebase.test.local.json', '--project','demo-casa-billing','node --test backend/functions/test/billing.integration.cjs backend/functions/test/finance.integration.cjs tests/security/rules.test.mjs']
   : mode === 'smoke'
   ? ['emulators:exec', '--project', 'demo-casa-local', 'node scripts/smoke.mjs']
   : mode === 'test'

@@ -82,3 +82,18 @@ test('notifications: own inbox only; cannot forge or directly acknowledge',async
  await assertFails(setDoc(doc(db,'notifications/forged'),{residentId:'alice'}));
  await assertFails(getDoc(doc(db,'notification_outbox/private')));
 });
+test('finance: only published periods readable; raw transactions always denied; no client writes',async()=>{
+ await env.withSecurityRulesDisabled(async c=>{
+  const db=c.firestore();
+  await setDoc(doc(db,'financePublications/2026-09'),{status:'PUBLISHED',totalIncome:100000,totalExpense:50000});
+  await setDoc(doc(db,'financePublications/2026-10'),{status:'DRAFT'});
+  await setDoc(doc(db,'finance_transactions/t1'),{type:'EXPENSE',category:'KEAMANAN',amount:50000,periodId:'2026-09'});
+ });
+ const db=env.authenticatedContext('alice').firestore();
+ await assertSucceeds(getDoc(doc(db,'financePublications/2026-09')));
+ await assertFails(getDoc(doc(db,'financePublications/2026-10')));
+ await assertFails(getDoc(doc(db,'finance_transactions/t1')));
+ await assertFails(setDoc(doc(db,'financePublications/2026-09'),{status:'PUBLISHED',totalIncome:999999999}));
+ await assertFails(setDoc(doc(db,'finance_transactions/forged'),{type:'INCOME',category:'DONASI',amount:999999999}));
+ await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(),'financePublications/2026-09')));
+});

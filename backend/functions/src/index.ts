@@ -55,6 +55,7 @@ export const setResidentActive = callable(operations.setResidentActive);
 export const activateInternetService = callable(operations.activateInternetService);
 export const listAdminRecords = callable(operations.listAdminRecords);
 
+import * as finance from './finance';
 import * as community from './community';
 import * as notifications from './notifications';
 import {generateMonthlyIpl as generateMonthlyIplService} from './monthly-ipl';
@@ -66,6 +67,9 @@ export const updateReportStatus = callable(community.updateReportStatus);
 export const markNotificationRead = callable(notifications.markNotificationRead);
 export const reconcileNotifications = callable(notifications.reconcileNotifications);
 export const generateMonthlyIpl = callable(generateMonthlyIplService);
+export const saveFinanceTransaction = callable(finance.saveFinanceTransaction);
+export const publishFinancePeriod = callable(finance.publishFinancePeriod);
+export const listFinancePublications = callable(finance.listFinancePublications);
 export const dispatchInAppNotification = onDocumentCreated({
  region:'asia-southeast2',document:'notification_outbox/{outboxId}',retry:true,
 },async event=> {await notifications.deliverNotification(event.params.outboxId);});

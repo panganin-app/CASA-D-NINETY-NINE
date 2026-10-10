@@ -22,6 +22,10 @@ service cloud.firestore {
     match /reports/{id} { allow read: if active() && resource.data.residentId == request.auth.uid; }
     match /report_events/{id} { allow read: if active() && resource.data.residentId == request.auth.uid; }
     match /notifications/{id} { allow read: if active() && resource.data.residentId == request.auth.uid; }
+    match /financePublications/{id} { allow read: if active() && resource.data.status == 'PUBLISHED'; }
+    // finance_transactions SENGAJA tidak ada rule -- jatuh ke deny-all di
+    // bawah. Internal murni, cuma Cloud Functions (Admin SDK) yang boleh
+    // baca/tulis; client (termasuk committee) gak pernah baca langsung.
     match /{document=**} { allow read, write: if false; }
   }
 }

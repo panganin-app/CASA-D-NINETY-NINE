@@ -116,7 +116,7 @@ export async function activateInternetService(uid:string,input:unknown) {
 
 export async function listAdminRecords(uid:string,input:unknown) {
   const data=payload(input,['resource','limit','afterId']);
-  if(!['houses','residents','ipl_payments','internet_payments','announcements','events','reports'].includes(String(data.resource))) throw new HttpsError('invalid-argument','Resource tidak valid.');
+  if(!['houses','residents','ipl_payments','internet_payments','announcements','events','reports','finance_transactions'].includes(String(data.resource))) throw new HttpsError('invalid-argument','Resource tidak valid.');
   const limit=data.limit??20;
   if(typeof limit!=='number'||!Number.isInteger(limit)||limit<1||limit>50) throw new HttpsError('invalid-argument','Limit 1–50.');
   const after=data.afterId===undefined?null:identifier(data.afterId),db=getFirestore();
@@ -134,6 +134,7 @@ export async function listAdminRecords(uid:string,input:unknown) {
       if(data.resource==='residents') return {id:doc.id,fullName:r.fullName,houseId:r.houseId,status:r.status};
       if(data.resource==='reports') return {id:doc.id,residentId:r.residentId,houseId:r.houseId,title:r.title,description:r.description,category:r.category,status:r.status,version:r.version,createdAt:r.createdAt};
       if(['announcements','events'].includes(String(data.resource))) return {id:doc.id,title:r.title,description:r.description,status:r.status,version:r.version,...(data.resource==='events'?{startsAt:r.startsAt,endsAt:r.endsAt,location:r.location}:{})};
+      if(data.resource==='finance_transactions') return {id:doc.id,type:r.type,category:r.category,amount:r.amount,description:r.description,periodId:r.periodId,version:r.version,createdBy:r.createdBy,createdAt:r.createdAt};
       return {id:doc.id,billId:r.billId,houseId:r.houseId,residentId:r.residentId,amount:r.amount,status:r.status,proofId:r.proofId,createdAt:r.createdAt};
     });
     return {items,nextCursor:snapshot.size>limit?docs.at(-1)!.id:null};
