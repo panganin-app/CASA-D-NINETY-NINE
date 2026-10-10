@@ -97,3 +97,26 @@ test('finance: only published periods readable; raw transactions always denied; 
  await assertFails(setDoc(doc(db,'finance_transactions/forged'),{type:'INCOME',category:'DONASI',amount:999999999}));
  await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(),'financePublications/2026-09')));
 });
+test('household: own resident profile, own-house family members/vehicles, inactive and other-house denied',async()=>{
+ await env.withSecurityRulesDisabled(async c=>{
+  const db=c.firestore();
+  await setDoc(doc(db,'users/alice'),{active:true,houseId:'A1'});
+  await setDoc(doc(db,'residents/alice'),{houseId:'A1',fullName:'Alice'});
+  await setDoc(doc(db,'residents/other'),{houseId:'A2',fullName:'Other'});
+  await setDoc(doc(db,'family_members/own'),{houseId:'A1',fullName:'Budi',active:true});
+  await setDoc(doc(db,'family_members/inactive'),{houseId:'A1',fullName:'Lama',active:false});
+  await setDoc(doc(db,'family_members/otherhouse'),{houseId:'A2',fullName:'Someone',active:true});
+  await setDoc(doc(db,'vehicles/own'),{houseId:'A1',plateNumber:'B1234XYZ',active:true});
+  await setDoc(doc(db,'vehicles/otherhouse'),{houseId:'A2',plateNumber:'D5678ABC',active:true});
+ });
+ const db=env.authenticatedContext('alice').firestore();
+ await assertSucceeds(getDoc(doc(db,'residents/alice')));
+ await assertFails(getDoc(doc(db,'residents/other')));
+ await assertSucceeds(getDoc(doc(db,'family_members/own')));
+ await assertFails(getDoc(doc(db,'family_members/inactive')));
+ await assertFails(getDoc(doc(db,'family_members/otherhouse')));
+ await assertSucceeds(getDoc(doc(db,'vehicles/own')));
+ await assertFails(getDoc(doc(db,'vehicles/otherhouse')));
+ await assertFails(updateDoc(doc(db,'family_members/own'),{fullName:'Forged'}));
+ await assertFails(setDoc(doc(db,'vehicles/forged'),{houseId:'A1',plateNumber:'Z9999ZZ'}));
+});

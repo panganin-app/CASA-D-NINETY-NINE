@@ -54,6 +54,16 @@ export const registerResident = callable(operations.registerResident);
 export const setResidentActive = callable(operations.setResidentActive);
 export const activateInternetService = callable(operations.activateInternetService);
 export const listAdminRecords = callable(operations.listAdminRecords);
+export const transferHouse = callable(operations.transferHouse);
+
+import * as household from './household';
+export const updateResidentProfile = callable(household.updateResidentProfile);
+export const saveFamilyMember = callable(household.saveFamilyMember);
+export const removeFamilyMember = callable(household.removeFamilyMember);
+export const listFamilyMembers = callable(household.listFamilyMembers);
+export const saveVehicle = callable(household.saveVehicle);
+export const removeVehicle = callable(household.removeVehicle);
+export const listVehicles = callable(household.listVehicles);
 
 import * as finance from './finance';
 import * as community from './community';

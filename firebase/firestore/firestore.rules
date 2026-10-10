@@ -12,6 +12,11 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if active() && request.auth.uid == uid;
     }
+    match /residents/{uid} {
+      allow read: if active() && request.auth.uid == uid;
+    }
+    match /family_members/{id} { allow read: if ownHouse(resource.data) && resource.data.active != false; }
+    match /vehicles/{id} { allow read: if ownHouse(resource.data) && resource.data.active != false; }
     match /ipl_bills/{id} { allow read: if ownHouse(resource.data); }
     match /internet_bills/{id} { allow read: if ownHouse(resource.data); }
     match /internet_subscriptions/{id} { allow read: if ownHouse(resource.data); }

@@ -90,6 +90,46 @@ export async function setResidentActive(uid:string,input:unknown) {
   });
 }
 
+// Transfer hunian = ganti penghuni TOTAL (keluarga lama pindah, rumah
+// kosong sampai keluarga baru didaftarkan lewat registerResident seperti
+// biasa). Data historis TIDAK dihapus -- warga/anggota keluarga/kendaraan
+// lama di-nonaktifkan (bukan di-delete), supaya houseId yang dipakai ulang
+// nanti gak kecampur sama data keluarga baru (lihat listFamilyMembers/
+// listVehicles di household.ts yang filter active!=false).
+export async function transferHouse(uid:string,input:unknown) {
+  const data=payload(input,['houseId','reason','requestId']);
+  const houseId=identifier(data.houseId),reason=text(data.reason,500),requestId=identifier(data.requestId);
+  const db=getFirestore(),houseRef=db.doc(`houses/${houseId}`);
+  const operationRef=db.doc(`admin_operations/${createHash('sha256').update(JSON.stringify([uid,requestId])).digest('hex')}`);
+  const signature=createHash('sha256').update(JSON.stringify(['TRANSFER_HOUSE',houseId,reason])).digest('hex');
+  return db.runTransaction(async tx=>{
+    const admin=await requireAdmin(tx,uid),previous=(await tx.get(operationRef)).data();
+    if(previous){if(previous.signature!==signature) throw new HttpsError('already-exists','Request ID sudah digunakan.');return previous.result;}
+    const house=(await tx.get(houseRef)).data();
+    if(!house?.active) throw new HttpsError('failed-precondition','Rumah tidak aktif.');
+    // Query equality tunggal (houseId) -- filter role/active DI MEMORI,
+    // sengaja hindari composite index buat query multi-field.
+    const [usersSnap,familySnap,vehiclesSnap]=await Promise.all([
+      tx.get(db.collection('users').where('houseId','==',houseId)),
+      tx.get(db.collection('family_members').where('houseId','==',houseId)),
+      tx.get(db.collection('vehicles').where('houseId','==',houseId)),
+    ]);
+    const residents=usersSnap.docs.filter(d=>d.data().role==='resident'&&d.data().active===true);
+    const now=Timestamp.now();
+    for(const doc of residents){
+      tx.update(doc.ref,{active:false,updatedAt:now});
+      tx.update(db.doc(`residents/${doc.id}`),{status:'INACTIVE',updatedAt:now});
+    }
+    for(const doc of familySnap.docs) if(doc.data().active!==false) tx.update(doc.ref,{active:false,version:(doc.data().version??1)+1,updatedAt:now});
+    for(const doc of vehiclesSnap.docs) if(doc.data().active!==false) tx.update(doc.ref,{active:false,version:(doc.data().version??1)+1,updatedAt:now});
+    tx.update(houseRef,{primaryResidentId:null,updatedAt:now});
+    const result={houseId,residentsDeactivated:residents.length,familyMembersDeactivated:familySnap.size,vehiclesDeactivated:vehiclesSnap.size};
+    tx.create(operationRef,{signature,result,createdAt:now});
+    audit(tx,uid,admin.role,'TRANSFER_HOUSE',houseId,{previousPrimaryResidentId:house.primaryResidentId},{...result,reason});
+    return result;
+  });
+}
+
 export async function activateInternetService(uid:string,input:unknown) {
   const data=payload(input,['houseId','paymentId','requestId','reason']);
   const houseId=identifier(data.houseId),paymentId=identifier(data.paymentId),requestId=identifier(data.requestId),reason=text(data.reason,500);
@@ -116,7 +156,7 @@ export async function activateInternetService(uid:string,input:unknown) {
 
 export async function listAdminRecords(uid:string,input:unknown) {
   const data=payload(input,['resource','limit','afterId']);
-  if(!['houses','residents','ipl_payments','internet_payments','announcements','events','reports','finance_transactions'].includes(String(data.resource))) throw new HttpsError('invalid-argument','Resource tidak valid.');
+  if(!['houses','residents','ipl_payments','internet_payments','announcements','events','reports','finance_transactions','family_members','vehicles'].includes(String(data.resource))) throw new HttpsError('invalid-argument','Resource tidak valid.');
   const limit=data.limit??20;
   if(typeof limit!=='number'||!Number.isInteger(limit)||limit<1||limit>50) throw new HttpsError('invalid-argument','Limit 1–50.');
   const after=data.afterId===undefined?null:identifier(data.afterId),db=getFirestore();
@@ -135,6 +175,8 @@ export async function listAdminRecords(uid:string,input:unknown) {
       if(data.resource==='reports') return {id:doc.id,residentId:r.residentId,houseId:r.houseId,title:r.title,description:r.description,category:r.category,status:r.status,version:r.version,createdAt:r.createdAt};
       if(['announcements','events'].includes(String(data.resource))) return {id:doc.id,title:r.title,description:r.description,status:r.status,version:r.version,...(data.resource==='events'?{startsAt:r.startsAt,endsAt:r.endsAt,location:r.location}:{})};
       if(data.resource==='finance_transactions') return {id:doc.id,type:r.type,category:r.category,amount:r.amount,description:r.description,periodId:r.periodId,version:r.version,createdBy:r.createdBy,createdAt:r.createdAt};
+      if(data.resource==='family_members') return {id:doc.id,houseId:r.houseId,fullName:r.fullName,relationship:r.relationship,phone:r.phone,active:r.active,version:r.version};
+      if(data.resource==='vehicles') return {id:doc.id,houseId:r.houseId,plateNumber:r.plateNumber,type:r.type,brand:r.brand,color:r.color,active:r.active,version:r.version};
       return {id:doc.id,billId:r.billId,houseId:r.houseId,residentId:r.residentId,amount:r.amount,status:r.status,proofId:r.proofId,createdAt:r.createdAt};
     });
     return {items,nextCursor:snapshot.size>limit?docs.at(-1)!.id:null};
