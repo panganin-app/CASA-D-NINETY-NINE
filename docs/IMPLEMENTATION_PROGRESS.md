@@ -127,3 +127,16 @@ Folder project di-**rename** dari `CASA D'NINETY NINE` -> `CASA DNINETY NINE` (a
 - Project dibuka di Android Studio (`open -a "Android Studio" apps/mobile`) -- Leo build manual dari situ sendiri.
 - `flutter analyze`: 0 masalah. `flutter test`: 2/2 PASS (tidak berubah).
 - Belum: icon buat desktop (macOS/Linux/Windows) & web gak disentuh; splash screen belum pakai logo (masih default putih polos pas app pertama kali buka, keliatan di screenshot sesi sebelumnya).
+
+## 10 Oktober 2026 — M6 CCTV: keputusan arsitektur disederhanakan (hand-off Hik-Connect), BUKAN integrasi API resmi
+
+**PERUBAHAN ARSITEKTUR dari PRD §19** (keputusan Product Owner 10 Okt 2026, bukan Change Request formal -- dicatat di sini): integrasi API resmi Hikvision (ISAPI/HikCentral OpenAPI/Hik-Connect TPP) butuh daftar developer di `tpp.hikvision.com`, approval AK/SK dari Hikvision (BUKAN self-service instan), dan router Casa sendiri sebagai "Streaming Gateway" -- dinilai kemahalan buat kebutuhan sekarang. Diganti pendekatan **hand-off ke app Hik-Connect**:
+
+- Pengurus share kamera ke warga LANGSUNG lewat fitur bawaan Hik-Connect ("Manage Sharing Settings", undang via email akun Hik-Connect, atur permission live view/playback/PTZ per kamera) -- DI LUAR sistem Casa sepenuhnya.
+- App Casa TIDAK punya `cctv_channels`/`cctv_permissions`/streaming gateway sendiri. Menu CCTV cuma instruksi 4 langkah (install Hik-Connect -> buat akun -> hubungi pengurus -> accept undangan) + tombol buka App Store/Play Store.
+- **Trade-off yang SENGAJA diterima**: akses CCTV gak tercatat di `audit_logs` Casa; `transferHouse`/`setResidentActive` (sudah dibangun, nonaktifkan warga di sistem Casa) **TIDAK ikut mencabut** sharing Hik-Connect -- pengurus harus cabut manual di Hik-Connect kalau ada warga pindah/nonaktif. Ini bukan bug, keputusan sadar demi kecepatan -- bisa di-upgrade ke integrasi API resmi nanti kalau kontrol terpusat jadi kebutuhan nyata.
+- `CctvScreen` (ganti `ComingSoonScreen`): link toko aplikasi iOS pakai App Store ID Hik-Connect asli yang terverifikasi (`id1087803190`), Android pakai LINK PENCARIAN Play Store (bukan tebak package ID -- lebih aman). Paket baru `url_launcher`.
+- SENGAJA TIDAK ada deep-link ke kamera tertentu di Hik-Connect -- Hikvision gak dokumentasikan URL scheme/intent buat itu, daripada nebak dan kemungkinan gak jalan, cukup tombol buka app/toko biasa.
+- Admin Web TIDAK perlu bangun apa pun buat CCTV sama sekali sekarang (sharing dikelola native di Hik-Connect) -- M6 scope buat Admin Web jadi kosong/dihapus dari rencana sampai ada keputusan upgrade ke integrasi resmi.
+- `flutter analyze`: 0 masalah. `flutter test`: 3/3 PASS (naik dari 2 -- 1 widget test baru buat CctvScreen).
+- M6 CCTV sekarang **SELESAI** sesuai keputusan baru ini (bukan ditunda lagi) -- beda dari rencana awal PRD §19 yang butuh integrasi API + gateway custom.

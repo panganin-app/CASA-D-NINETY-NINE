@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/providers/auth_providers.dart';
+import '../features/cctv/presentation/cctv_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../shared/widgets/coming_soon_screen.dart';
 
@@ -30,7 +31,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
       GoRoute(path: '/ipl', builder: (context, state) => const ComingSoonScreen(title: 'IPL')),
-      GoRoute(path: '/cctv', builder: (context, state) => const ComingSoonScreen(title: 'CCTV')),
+      GoRoute(path: '/cctv', builder: (context, state) => const CctvScreen()),
       GoRoute(path: '/informasi', builder: (context, state) => const ComingSoonScreen(title: 'Informasi')),
       GoRoute(path: '/profile', builder: (context, state) => const ComingSoonScreen(title: 'Profil')),
     ],
