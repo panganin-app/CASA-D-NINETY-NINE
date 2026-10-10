@@ -199,7 +199,7 @@ Folder project di-**rename** dari `CASA D'NINETY NINE` -> `CASA DNINETY NINE` (a
 ## 10 Oktober 2026 — Lupa kata sandi, ubah kata sandi, status hunian, hubungi pengurus, kebijakan privasi
 
 - **Lupa kata sandi** (layar login): kirim tautan reset ke email lewat Firebase Auth. Pesan hasilnya SAMA apa pun (email terdaftar atau tidak) supaya tidak bisa dipakai menebak akun.
-- **Ubah kata sandi** (Profil > Akun): verifikasi kata sandi lama (reauthenticate, syarat Firebase), minimal 8 karakter, harus beda dari yang lama. Ini menggantikan "Ubah PIN" di mockup karena auth yang dibangun memakai email+password, bukan PIN.
+- **Ubah kata sandi** (Profil > Akun): verifikasi kata sandi lama (reauthenticate, syarat Firebase), minimal 8 karakter, harus beda dari yang lama. Keputusan Leo 10 Okt 2026: tidak ada PIN, akun memakai email + kata sandi saja (menggantikan "Ubah PIN" di mockup).
 - **Status hunian** (backend `setHouseOccupancy`, committee/super_admin saja, idempoten, audit): OWNER (milik sendiri) atau RENTER (sewa/kontrak). Warga TIDAK bisa mengklaim sendiri. Ditampilkan read-only di Profil ("Belum diatur pengurus" kalau kosong). `getMyHousehold` sekarang mengembalikan `occupancyType`.
 - **Hubungi pengurus**: daftar kontak (Ketua, Keuangan/Bendahara, Keamanan) dengan tombol Telepon dan WhatsApp. **Nomor BELUM diisi** -- layar menampilkan "Nomor belum tersedia" dan tidak menampilkan nomor palsu. Nomor diisi di `lib/core/config/contact_config.dart`.
 - **Kebijakan privasi**: DRAFT, ditandai jelas di layar. Isinya merangkum data yang benar-benar dikumpulkan app. Jangka waktu penyimpanan dan alamat email privasi masih placeholder `[DRAFT: ...]`, dan belum boleh dipublikasikan ke toko aplikasi sebelum ditinjau.
