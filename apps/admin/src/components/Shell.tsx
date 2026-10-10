@@ -5,14 +5,17 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, type ReactNode } from 'react';
 import { useAuth } from '@/lib/auth';
 
-const NAV = [
+const NAV: { href: string; label: string; superOnly?: boolean }[] = [
   { href: '/dashboard/', label: 'Beranda' },
   { href: '/pembayaran/', label: 'Verifikasi Pembayaran' },
   { href: '/tagihan/', label: 'Tagihan IPL' },
+  { href: '/internet/', label: 'Layanan Internet' },
   { href: '/rumah/', label: 'Rumah & Warga' },
+  { href: '/pengumuman/', label: 'Pengumuman & Agenda' },
   { href: '/laporan/', label: 'Laporan Warga' },
   { href: '/keuangan/', label: 'Keuangan' },
   { href: '/audit/', label: 'Audit Log' },
+  { href: '/pengaturan/', label: 'Pengaturan Sistem', superOnly: true },
 ];
 
 /** Shell halaman pengurus: menjaga akses (login + peran) dan menampilkan navigasi. */
@@ -45,7 +48,7 @@ export function Shell({ children }: { children: ReactNode }) {
       <aside className="sidebar">
         <h1>Casa D&apos;Ninety Nine</h1>
         <nav>
-          {NAV.map((n) => (
+          {NAV.filter((n) => !n.superOnly || profile.role === 'super_admin').map((n) => (
             <Link key={n.href} href={n.href} className={pathname?.startsWith(n.href.replace(/\/$/, '')) ? 'active' : ''}>
               {n.label}
             </Link>

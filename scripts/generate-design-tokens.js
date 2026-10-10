@@ -63,8 +63,7 @@ function walk(node, pathSegs) {
         const type = node.$type;
         const value = node.$value;
         const cssName = "--" + pathSegs.map((seg) => seg.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase()).join("-");
-        if (type === "color" || type === "dimension" || type === "number" || type === "duration") cssVars.push(`  ${cssName}: ${type === "duration" ? value : type === "color" ? value : type === "dimension" ? value : value};`);
-        else if (type === "fontFamily") cssVars.push(`  ${cssName}: ${value};`);
+        if (["color", "dimension", "number", "duration", "fontFamily"].includes(type)) cssVars.push(`  ${cssName}: ${value};`);
         if (type === "color") lines.push(`  static const Color ${name} = ${hexToDartColor(value)};`);
         else if (type === "dimension") lines.push(`  static const double ${name} = ${parsePx(value)};`);
         else if (type === "number") lines.push(`  static const int ${name} = ${value};`);

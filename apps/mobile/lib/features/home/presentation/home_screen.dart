@@ -93,6 +93,7 @@ class _QuickActions extends StatelessWidget {
   Widget build(BuildContext context) {
     final actions = [
       (icon: Icons.receipt_long_rounded, label: 'IPL', path: '/ipl'),
+      (icon: Icons.wifi_rounded, label: 'Internet', path: '/internet'),
       (icon: Icons.videocam_rounded, label: 'CCTV', path: '/cctv'),
       (icon: Icons.campaign_rounded, label: 'Informasi', path: '/informasi'),
       (icon: Icons.person_rounded, label: 'Profil', path: '/profile'),

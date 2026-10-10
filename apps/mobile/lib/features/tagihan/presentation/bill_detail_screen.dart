@@ -5,27 +5,28 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../core/theme/casa_tokens.dart';
-import '../data/ipl_models.dart';
-import '../providers/ipl_providers.dart';
-import 'ipl_list_screen.dart' show formatRupiah;
+import '../../../shared/format/format.dart';
+import '../data/bill_models.dart';
+import '../providers/bill_providers.dart';
 
-class IplDetailScreen extends ConsumerStatefulWidget {
-  const IplDetailScreen({super.key, required this.billId});
+/// Detail tagihan (IPL atau internet): instruksi BCA, pilih bukti, kirim.
+class BillDetailScreen extends ConsumerStatefulWidget {
+  const BillDetailScreen({super.key, required this.kind, required this.billId});
 
+  final BillKind kind;
   final String billId;
 
   @override
-  ConsumerState<IplDetailScreen> createState() => _IplDetailScreenState();
+  ConsumerState<BillDetailScreen> createState() => _BillDetailScreenState();
 }
 
-class _IplDetailScreenState extends ConsumerState<IplDetailScreen> {
+class _BillDetailScreenState extends ConsumerState<BillDetailScreen> {
   Uint8List? _proofBytes;
   bool _busy = false;
   String? _message;
   bool _messageIsError = false;
 
-  // requestId dibuat sekali per sesi layar -- retry dengan requestId sama
-  // dianggap idempotent oleh backend (tidak bikin pembayaran dobel).
+  // requestId dibuat sekali per sesi layar -- retry tidak membuat pembayaran dobel.
   final String _requestId = _newRequestId();
 
   static String _newRequestId() {
@@ -43,7 +44,7 @@ class _IplDetailScreenState extends ConsumerState<IplDetailScreen> {
     });
   }
 
-  Future<void> _submit(IplBill bill) async {
+  Future<void> _submit() async {
     final bytes = _proofBytes;
     if (bytes == null) {
       setState(() {
@@ -57,10 +58,10 @@ class _IplDetailScreenState extends ConsumerState<IplDetailScreen> {
       _message = null;
     });
     try {
-      final repo = ref.read(iplRepositoryProvider);
-      final proofId = await repo.uploadProof(billId: bill.id, imageBytes: bytes);
-      await repo.submitPayment(billId: bill.id, proofId: proofId, requestId: _requestId);
-      ref.invalidate(iplBillsProvider);
+      final repo = ref.read(billRepositoryProvider);
+      final proofId = await repo.uploadProof(kind: widget.kind, billId: widget.billId, imageBytes: bytes);
+      await repo.submitPayment(kind: widget.kind, billId: widget.billId, proofId: proofId, requestId: _requestId);
+      ref.invalidate(billsProvider(widget.kind));
       if (!mounted) return;
       setState(() {
         _proofBytes = null;
@@ -80,9 +81,10 @@ class _IplDetailScreenState extends ConsumerState<IplDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final billAsync = ref.watch(iplBillDetailProvider(widget.billId));
+    final key = (widget.kind, widget.billId);
+    final billAsync = ref.watch(billDetailProvider(key));
     return Scaffold(
-      appBar: AppBar(title: const Text('Detail IPL')),
+      appBar: AppBar(title: Text('Detail ${widget.kind.label}')),
       body: billAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Gagal memuat tagihan.', style: Theme.of(context).textTheme.bodyMedium)),
@@ -93,25 +95,29 @@ class _IplDetailScreenState extends ConsumerState<IplDetailScreen> {
           return ListView(
             padding: EdgeInsets.all(CasaTokens.layoutMobileContentPadding),
             children: [
-              Text('Periode ${bill.period}', style: Theme.of(context).textTheme.headlineMedium),
+              Text(
+                bill.packageId != null ? 'Internet ${bill.packageId!.replaceAll('INTERNET_', '')} Mbps' : 'Periode ${bill.period}',
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
               SizedBox(height: CasaTokens.spacing1),
               Text(formatRupiah(bill.amount), style: Theme.of(context).textTheme.titleLarge),
               SizedBox(height: CasaTokens.spacing1),
-              Text('Iuran Pengelolaan Lingkungan -- mencakup keamanan, kebersihan, dan lingkungan.',
-                  style: Theme.of(context).textTheme.bodySmall),
+              Text(
+                widget.kind == BillKind.ipl
+                    ? 'Iuran Pengelolaan Lingkungan -- mencakup keamanan, kebersihan, dan lingkungan.'
+                    : 'Pembayaran paket internet. Masa aktif diperpanjang setelah pembayaran disetujui.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
               SizedBox(height: CasaTokens.spacing6),
               if (bill.canPay) ...[
-                _PaymentInstructionsCard(billId: bill.id),
+                _InstructionsCard(kind: widget.kind, billId: bill.id),
                 SizedBox(height: CasaTokens.spacing4),
-                _ProofSection(
-                  proofBytes: _proofBytes,
-                  onPick: _pickProof,
-                ),
+                _ProofSection(proofBytes: _proofBytes, onPick: _pickProof),
                 SizedBox(height: CasaTokens.spacing4),
                 if (_message != null) _Banner(text: _message!, isError: _messageIsError),
                 SizedBox(height: CasaTokens.spacing3),
                 ElevatedButton(
-                  onPressed: _busy ? null : () => _submit(bill),
+                  onPressed: _busy ? null : _submit,
                   child: _busy
                       ? const SizedBox(
                           width: 20,
@@ -129,11 +135,11 @@ class _IplDetailScreenState extends ConsumerState<IplDetailScreen> {
     );
   }
 
-  String _statusText(IplBillStatus status) {
+  String _statusText(BillStatus status) {
     switch (status) {
-      case IplBillStatus.paid:
+      case BillStatus.paid:
         return 'Tagihan ini sudah lunas. Terima kasih.';
-      case IplBillStatus.pendingVerification:
+      case BillStatus.pendingVerification:
         return 'Bukti Anda sedang diverifikasi pengurus.';
       default:
         return 'Tagihan tidak dapat dibayar saat ini.';
@@ -141,14 +147,15 @@ class _IplDetailScreenState extends ConsumerState<IplDetailScreen> {
   }
 }
 
-class _PaymentInstructionsCard extends ConsumerWidget {
-  const _PaymentInstructionsCard({required this.billId});
+class _InstructionsCard extends ConsumerWidget {
+  const _InstructionsCard({required this.kind, required this.billId});
 
+  final BillKind kind;
   final String billId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final instructions = ref.watch(paymentInstructionsProvider(billId));
+    final instructions = ref.watch(paymentInstructionsProvider((kind, billId)));
     return Card(
       child: Padding(
         padding: EdgeInsets.all(CasaTokens.spacing4),
@@ -196,9 +203,7 @@ class _InfoRow extends StatelessWidget {
               tooltip: 'Salin',
               onPressed: () {
                 Clipboard.setData(ClipboardData(text: value));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Nomor rekening disalin')),
-                );
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nomor rekening disalin')));
               },
             ),
         ],

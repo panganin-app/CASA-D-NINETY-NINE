@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../core/theme/casa_tokens.dart';
 import '../../home/providers/home_providers.dart';
-import '../../ipl/presentation/ipl_list_screen.dart' show formatRupiah;
+import '../../../shared/format/format.dart';
 import '../data/keuangan_models.dart';
 import '../data/keuangan_repository.dart';
 

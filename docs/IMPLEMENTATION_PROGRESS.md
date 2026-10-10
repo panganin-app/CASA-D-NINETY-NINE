@@ -208,3 +208,14 @@ Folder project di-**rename** dari `CASA D'NINETY NINE` -> `CASA DNINETY NINE` (a
 - Mobile: analyze bersih, 30/30 test lulus.
 - **BELUM dites end-to-end** di simulator.
 - Belum ada UI untuk pengurus mengatur status hunian di mobile; ini dikerjakan lewat Admin Web (belum dibangun).
+
+## 10 Oktober 2026 — Lanjutan: admin (pengumuman, internet, pengaturan) dan tagihan internet di app
+
+- **Admin web**: halaman Pengumuman & Agenda (buat, ubah, status Draft/Terbit/Arsip; agenda dengan waktu & lokasi), Layanan Internet (daftar langganan, aktivasi manual dari pembayaran yang sudah disetujui, perbarui status masa aktif), dan Pengaturan Sistem (hanya Super Admin dapat mengubah; pengurus biasa hanya melihat).
+- **Backend**: `listAdminRecords` menerima resource `internet_subscriptions` (pengurus saja). Tes baru: `internet-admin.integration.cjs`. Emulator suite 42/42.
+- **App warga**: tagihan internet sekarang ada. Layar Internet menampilkan status langganan dan tagihan internet. Kepala keluarga memilih paket (harga dari `getBillingCatalog`) lalu membuat tagihan (`requestId` acak per sesi). Alur bayar sama dengan IPL.
+- Struktur kode: `features/ipl` digabung ke `features/tagihan` (model, repository, provider, detail) dengan `BillKind` (IPL/internet), sehingga satu alur dipakai dua jenis tagihan. Format rupiah dipindah ke `shared/format`.
+- Tombol Internet ditambahkan di Beranda.
+- Perbaikan kecil: generator token menulis CSS admin, output Dart tidak berubah.
+- `flutter analyze`: 0 masalah. `flutter test`: 33/33 PASS. `tsc`: bersih. Build statis admin: 12 halaman.
+- **Belum dites langsung di browser/simulator** setelah perubahan ini (lihat `docs/runbooks/PUBLISH_LOCAL.md`).

@@ -156,7 +156,7 @@ export async function activateInternetService(uid:string,input:unknown) {
 
 export async function listAdminRecords(uid:string,input:unknown) {
   const data=payload(input,['resource','limit','afterId']);
-  if(!['houses','residents','ipl_payments','internet_payments','announcements','events','reports','finance_transactions','family_members','vehicles'].includes(String(data.resource))) throw new HttpsError('invalid-argument','Resource tidak valid.');
+  if(!['houses','residents','ipl_payments','internet_payments','announcements','events','reports','finance_transactions','family_members','vehicles','internet_subscriptions'].includes(String(data.resource))) throw new HttpsError('invalid-argument','Resource tidak valid.');
   const limit=data.limit??20;
   if(typeof limit!=='number'||!Number.isInteger(limit)||limit<1||limit>50) throw new HttpsError('invalid-argument','Limit 1–50.');
   const after=data.afterId===undefined?null:identifier(data.afterId),db=getFirestore();
@@ -176,6 +176,7 @@ export async function listAdminRecords(uid:string,input:unknown) {
       if(['announcements','events'].includes(String(data.resource))) return {id:doc.id,title:r.title,description:r.description,status:r.status,version:r.version,...(data.resource==='events'?{startsAt:r.startsAt,endsAt:r.endsAt,location:r.location}:{})};
       if(data.resource==='finance_transactions') return {id:doc.id,type:r.type,category:r.category,amount:r.amount,description:r.description,periodId:r.periodId,version:r.version,createdBy:r.createdBy,createdAt:r.createdAt};
       if(data.resource==='family_members') return {id:doc.id,houseId:r.houseId,fullName:r.fullName,relationship:r.relationship,phone:r.phone,active:r.active,version:r.version};
+      if(data.resource==='internet_subscriptions') return {id:doc.id,status:r.status,activeUntil:r.activeUntil,lastApprovedPaymentId:r.lastApprovedPaymentId??null,primaryResidentId:r.primaryResidentId,packageId:r.packageId};
       if(data.resource==='vehicles') return {id:doc.id,houseId:r.houseId,plateNumber:r.plateNumber,type:r.type,brand:r.brand,color:r.color,active:r.active,version:r.version};
       return {id:doc.id,billId:r.billId,houseId:r.houseId,residentId:r.residentId,amount:r.amount,status:r.status,proofId:r.proofId,createdAt:r.createdAt};
     });
