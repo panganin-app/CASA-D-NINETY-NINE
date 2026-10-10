@@ -151,3 +151,14 @@ Folder project di-**rename** dari `CASA D'NINETY NINE` -> `CASA DNINETY NINE` (a
 - `flutter analyze`: 0 masalah. `flutter test`: 7/7 PASS (termasuk unit test model: pemetaan status, aturan `canPay`, format rupiah).
 - **BELUM dites end-to-end** (pilih foto -> upload -> submit di simulator dengan data emulator). Perlu Leo jalankan sendiri: `npm run emulators`, `npm run seed:local`, lalu `flutter run`.
 - Belum: Pengumuman, Agenda, Laporan, Keuangan, Profil di mobile masih placeholder.
+
+## 10 Oktober 2026 — Mobile: fitur Laporan warga (buat & riwayat)
+
+- **Alur**: riwayat laporan (`/reports`, FAB "Buat Laporan") -> form (`/reports/new`: kategori, judul, deskripsi) -> `createResidentReport` (backend, idempotent via requestId sekali per sesi form).
+- Riwayat dibaca langsung dari Firestore `reports` (rules membatasi ke `residentId == uid`), diurutkan `createdAt` terbaru. Client tidak pernah menulis `reports` langsung.
+- Kategori tetap sama persis dengan backend (FACILITIES, SECURITY, CLEANLINESS, ENVIRONMENT, INTERNET, OTHER), label Indonesia di client.
+- **Index baru**: `reports` (`residentId` ASC, `createdAt` DESC) di `firestore.indexes.json`.
+- Status ditampilkan sebagai chip (Terkirim, Ditinjau, Diproses, Selesai, Ditolak, Ditutup).
+- `flutter analyze`: 0 masalah. `flutter test`: 11/11 PASS (termasuk unit test pemetaan status, daftar kategori vs backend, dan label kategori).
+- **BELUM dites end-to-end** di simulator. Lampiran foto laporan belum ada (backend belum menyediakannya).
+- Belum: Pengumuman/Agenda (Informasi, masih placeholder), Keuangan, Profil, dan detail laporan (riwayat event status belum ditampilkan).

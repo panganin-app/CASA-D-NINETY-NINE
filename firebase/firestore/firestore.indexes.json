@@ -23,6 +23,14 @@
         {"fieldPath": "houseId", "order": "ASCENDING"},
         {"fieldPath": "period", "order": "DESCENDING"}
       ]
+    },
+    {
+      "collectionGroup": "reports",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "residentId", "order": "ASCENDING"},
+        {"fieldPath": "createdAt", "order": "DESCENDING"}
+      ]
     }
   ],
   "fieldOverrides": []
