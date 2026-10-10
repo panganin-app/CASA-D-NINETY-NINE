@@ -6,10 +6,13 @@ import '../../../core/network/functions_client.dart';
 final functionsClientProvider = Provider<FunctionsClient>((ref) => FunctionsClient());
 
 class HouseholdInfo {
-  const HouseholdInfo({required this.houseId, required this.label, required this.isHead});
+  const HouseholdInfo({required this.houseId, required this.label, required this.isHead, this.occupancyType});
   final String houseId;
   final String label;
   final bool isHead;
+
+  /// 'OWNER' (milik sendiri), 'RENTER' (sewa/kontrak), atau null kalau belum diatur pengurus.
+  final String? occupancyType;
 }
 
 /// getMyHousehold (callable) -- lihat backend/functions/src/index.ts.
@@ -22,6 +25,7 @@ final householdProvider = FutureProvider.autoDispose<HouseholdInfo>((ref) async 
     houseId: result['houseId'] as String,
     label: result['label'] as String,
     isHead: result['isHead'] as bool,
+    occupancyType: result['occupancyType'] as String?,
   );
 });
 

@@ -46,6 +46,46 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  Future<void> _forgotPassword() async {
+    final controller = TextEditingController(text: _emailController.text.trim());
+    final email = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Reset Kata Sandi'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Masukkan email akun Anda. Kami akan mengirim tautan untuk membuat kata sandi baru.'),
+            SizedBox(height: CasaTokens.spacing3),
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(labelText: 'Email'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, controller.text.trim()), child: const Text('Kirim Tautan')),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (email == null || email.isEmpty || !mounted) return;
+    try {
+      await ref.read(authRepositoryProvider).sendPasswordReset(email);
+      if (!mounted) return;
+      // Pesan SAMA untuk email terdaftar atau tidak (anti enumerasi akun).
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Jika email terdaftar, tautan reset sudah dikirim. Cek juga folder spam.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -104,6 +144,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       validator: (value) =>
                           (value == null || value.isEmpty) ? 'Kata sandi wajib diisi' : null,
                       onFieldSubmitted: (_) => _submit(),
+                    ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: _forgotPassword,
+                        child: const Text('Lupa kata sandi?'),
+                      ),
                     ),
                     SizedBox(height: CasaTokens.spacing6),
                     ElevatedButton(

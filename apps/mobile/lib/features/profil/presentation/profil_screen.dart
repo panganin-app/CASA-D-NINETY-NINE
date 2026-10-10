@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../core/theme/casa_tokens.dart';
 import '../../auth/providers/auth_providers.dart';
+import '../../home/providers/home_providers.dart';
 import '../data/profil_models.dart';
 import '../providers/profil_providers.dart';
 
@@ -40,6 +42,10 @@ class ProfilScreen extends ConsumerWidget {
             const _FamilySection(),
             SizedBox(height: CasaTokens.spacing4),
             const _VehicleSection(),
+            SizedBox(height: CasaTokens.spacing4),
+            const _AccountSection(),
+            SizedBox(height: CasaTokens.spacing4),
+            const _HelpSection(),
             SizedBox(height: CasaTokens.spacing6),
             OutlinedButton.icon(
               onPressed: () => ref.read(authRepositoryProvider).signOut(),
@@ -120,9 +126,25 @@ class _ContactSection extends ConsumerWidget {
             title: const Text('Email'),
             subtitle: Text(profil.email.isEmpty ? '-' : profil.email),
           ),
+          ListTile(
+            leading: const Icon(Icons.house_rounded),
+            title: const Text('Status Hunian'),
+            subtitle: Text(_occupancyLabel(ref.watch(householdProvider).value?.occupancyType)),
+          ),
         ],
       ),
     );
+  }
+
+  static String _occupancyLabel(String? type) {
+    switch (type) {
+      case 'OWNER':
+        return 'Milik sendiri';
+      case 'RENTER':
+        return 'Sewa / kontrak';
+      default:
+        return 'Belum diatur pengurus';
+    }
   }
 
   Future<void> _editPhone(BuildContext context, WidgetRef ref, ProfilSaya profil) async {
@@ -250,6 +272,53 @@ class _Note extends StatelessWidget {
       child: Text(
         text,
         style: TextStyle(color: isError ? CasaTokens.colorSemanticError : CasaTokens.colorTextSecondary),
+      ),
+    );
+  }
+}
+
+class _AccountSection extends StatelessWidget {
+  const _AccountSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      title: 'Akun',
+      child: ListTile(
+        leading: const Icon(Icons.lock_rounded),
+        title: const Text('Ubah Kata Sandi'),
+        subtitle: const Text('Ganti kata sandi akun Anda'),
+        trailing: const Icon(Icons.chevron_right_rounded),
+        onTap: () => context.push('/profile/password'),
+      ),
+    );
+  }
+}
+
+class _HelpSection extends StatelessWidget {
+  const _HelpSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      title: 'Bantuan',
+      child: Column(
+        children: [
+          ListTile(
+            leading: const Icon(Icons.support_agent_rounded),
+            title: const Text('Hubungi Pengurus'),
+            subtitle: const Text('Pertanyaan atau laporan'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => context.push('/profile/contact'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.policy_rounded),
+            title: const Text('Kebijakan Privasi'),
+            subtitle: const Text('Lihat kebijakan privasi aplikasi'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => context.push('/profile/privacy'),
+          ),
+        ],
       ),
     );
   }

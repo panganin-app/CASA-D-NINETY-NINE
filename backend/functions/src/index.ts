@@ -34,7 +34,7 @@ export const getMyHousehold = callable(async uid => {
   if (!user?.active || typeof user.houseId !== 'string') throw new HttpsError('permission-denied','Rumah belum terdaftar.');
   const house = (await db.doc(`houses/${user.houseId}`).get()).data();
   if (!house?.active) throw new HttpsError('permission-denied','Rumah tidak aktif.');
-  return {houseId:user.houseId, label:house.label ?? user.houseId, isHead:house.primaryResidentId === uid};
+  return {houseId:user.houseId, label:house.label ?? user.houseId, isHead:house.primaryResidentId === uid, occupancyType:house.occupancyType ?? null};
 });
 
 export const getPaymentInstructions = callable(async (uid,input) => {
@@ -55,6 +55,7 @@ export const setResidentActive = callable(operations.setResidentActive);
 export const activateInternetService = callable(operations.activateInternetService);
 export const listAdminRecords = callable(operations.listAdminRecords);
 export const transferHouse = callable(operations.transferHouse);
+export const setHouseOccupancy = callable(operations.setHouseOccupancy);
 export const listAuditLogs = callable(operations.listAuditLogs);
 
 import * as household from './household';

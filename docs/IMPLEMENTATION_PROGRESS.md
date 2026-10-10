@@ -195,3 +195,16 @@ Folder project di-**rename** dari `CASA D'NINETY NINE` -> `CASA DNINETY NINE` (a
 - Anggota keluarga dan kendaraan masih read-only di app. Tambah/ubah/hapus lewat app belum dibuat (backend sudah siap).
 - Email yang tampil adalah email login Firebase Auth. Field `email` di backend `residents` adalah kontak terpisah yang belum ditampilkan.
 - **BELUM dites end-to-end** di simulator.
+
+## 10 Oktober 2026 — Lupa kata sandi, ubah kata sandi, status hunian, hubungi pengurus, kebijakan privasi
+
+- **Lupa kata sandi** (layar login): kirim tautan reset ke email lewat Firebase Auth. Pesan hasilnya SAMA apa pun (email terdaftar atau tidak) supaya tidak bisa dipakai menebak akun.
+- **Ubah kata sandi** (Profil > Akun): verifikasi kata sandi lama (reauthenticate, syarat Firebase), minimal 8 karakter, harus beda dari yang lama. Ini menggantikan "Ubah PIN" di mockup karena auth yang dibangun memakai email+password, bukan PIN.
+- **Status hunian** (backend `setHouseOccupancy`, committee/super_admin saja, idempoten, audit): OWNER (milik sendiri) atau RENTER (sewa/kontrak). Warga TIDAK bisa mengklaim sendiri. Ditampilkan read-only di Profil ("Belum diatur pengurus" kalau kosong). `getMyHousehold` sekarang mengembalikan `occupancyType`.
+- **Hubungi pengurus**: daftar kontak (Ketua, Keuangan/Bendahara, Keamanan) dengan tombol Telepon dan WhatsApp. **Nomor BELUM diisi** -- layar menampilkan "Nomor belum tersedia" dan tidak menampilkan nomor palsu. Nomor diisi di `lib/core/config/contact_config.dart`.
+- **Kebijakan privasi**: DRAFT, ditandai jelas di layar. Isinya merangkum data yang benar-benar dikumpulkan app. Jangka waktu penyimpanan dan alamat email privasi masih placeholder `[DRAFT: ...]`, dan belum boleh dipublikasikan ke toko aplikasi sebelum ditinjau.
+- Tidak dibuat: "Perangkat Aktif" (tidak ada datanya di backend).
+- Backend: `occupancy.integration.cjs` (3 test). Emulator suite: 41/41 lulus.
+- Mobile: analyze bersih, 30/30 test lulus.
+- **BELUM dites end-to-end** di simulator.
+- Belum ada UI untuk pengurus mengatur status hunian di mobile; ini dikerjakan lewat Admin Web (belum dibangun).

@@ -8,6 +8,9 @@ import '../features/home/presentation/home_screen.dart';
 import '../features/ipl/presentation/ipl_detail_screen.dart';
 import '../features/informasi/presentation/informasi_screens.dart';
 import '../features/keuangan/presentation/keuangan_screen.dart';
+import '../features/auth/presentation/change_password_screen.dart';
+import '../features/profil/presentation/contact_screen.dart';
+import '../features/profil/presentation/privacy_policy_screen.dart';
 import '../features/profil/presentation/profil_screen.dart';
 import '../features/ipl/presentation/ipl_list_screen.dart';
 import '../features/reports/presentation/reports_screens.dart';
@@ -46,6 +49,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/reports', builder: (context, state) => const ReportHistoryScreen()),
       GoRoute(path: '/reports/new', builder: (context, state) => const ReportCreateScreen()),
       GoRoute(path: '/profile', builder: (context, state) => const ProfilScreen()),
+      GoRoute(path: '/profile/password', builder: (context, state) => const ChangePasswordScreen()),
+      GoRoute(path: '/profile/contact', builder: (context, state) => const ContactScreen()),
+      GoRoute(path: '/profile/privacy', builder: (context, state) => const PrivacyPolicyScreen()),
     ],
   );
 });

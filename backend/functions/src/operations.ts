@@ -219,3 +219,27 @@ export async function listAuditLogs(uid:string,input:unknown) {
     };
   });
 }
+
+// Status hunian (milik sendiri / sewa). Diatur pengurus, bukan warga --
+// warga tidak boleh mengklaim sendiri "pemilik" untuk rumah yang disewa.
+const OCCUPANCY_TYPES=['OWNER','RENTER'];
+export async function setHouseOccupancy(uid:string,input:unknown) {
+  const data=payload(input,['houseId','occupancyType','reason','requestId']);
+  const houseId=identifier(data.houseId),requestId=identifier(data.requestId),reason=text(data.reason,500);
+  if(!OCCUPANCY_TYPES.includes(String(data.occupancyType))) throw new HttpsError('invalid-argument','Status hunian harus OWNER atau RENTER.');
+  const occupancyType=String(data.occupancyType);
+  const db=getFirestore(),houseRef=db.doc(`houses/${houseId}`);
+  const operationRef=db.doc(`admin_operations/${createHash('sha256').update(JSON.stringify([uid,requestId])).digest('hex')}`);
+  const signature=createHash('sha256').update(JSON.stringify(['SET_OCCUPANCY',houseId,occupancyType,reason])).digest('hex');
+  return db.runTransaction(async tx=>{
+    const admin=await requireAdmin(tx,uid),previous=(await tx.get(operationRef)).data();
+    if(previous){if(previous.signature!==signature) throw new HttpsError('already-exists','Request ID sudah digunakan.');return previous.result;}
+    const house=(await tx.get(houseRef)).data();
+    if(!house) throw new HttpsError('not-found','Rumah tidak ditemukan.');
+    const now=Timestamp.now(),result={houseId,occupancyType};
+    tx.update(houseRef,{occupancyType,updatedAt:now});
+    tx.create(operationRef,{signature,result,createdAt:now});
+    audit(tx,uid,admin.role,'SET_HOUSE_OCCUPANCY',houseId,{occupancyType:house.occupancyType??null},{occupancyType,reason});
+    return result;
+  });
+}
