@@ -1,0 +1,19 @@
+title = "CASA D'Ninety Nine gitleaks config"
+
+# Extend (bukan GANTI) ruleset default gitleaks -- semua deteksi secret asli
+# TETAP aktif. Allowlist di bawah SENGAJA pakai exact-match string (bukan
+# pola longgar) buat 1 placeholder yang sudah diketahui & didokumentasikan:
+# apiKey format-valid (39 karakter, prefix "AIza") yang WAJIB dipakai biar
+# Firebase SDK (FirebaseInstallations) gak crash app saat initializeApp(),
+# TAPI gak pernah nyentuh Firebase Installations API asli -- app ini SELALU
+# redirect ke Emulator Suite lokal (lihat apps/mobile/lib/core/network/
+# firebase_emulator.dart). Project Firebase production BELUM ada sama
+# sekali (lihat apps/mobile/lib/firebase_options.dart).
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Format-valid tapi non-functional Firebase placeholder (local emulator only, no production project exists)"
+regexes = [
+  '''AIzaSyDemoLocalEmulatorOnlyNotARealKey1''',
+]
