@@ -15,6 +15,14 @@
         {"fieldPath": "action", "order": "ASCENDING"},
         {"fieldPath": "createdAt", "order": "DESCENDING"}
       ]
+    },
+    {
+      "collectionGroup": "ipl_bills",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "houseId", "order": "ASCENDING"},
+        {"fieldPath": "period", "order": "DESCENDING"}
+      ]
     }
   ],
   "fieldOverrides": []

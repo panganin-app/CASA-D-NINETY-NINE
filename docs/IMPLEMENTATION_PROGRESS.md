@@ -140,3 +140,14 @@ Folder project di-**rename** dari `CASA D'NINETY NINE` -> `CASA DNINETY NINE` (a
 - Admin Web TIDAK perlu bangun apa pun buat CCTV sama sekali sekarang (sharing dikelola native di Hik-Connect) -- M6 scope buat Admin Web jadi kosong/dihapus dari rencana sampai ada keputusan upgrade ke integrasi resmi.
 - `flutter analyze`: 0 masalah. `flutter test`: 3/3 PASS (naik dari 2 -- 1 widget test baru buat CctvScreen).
 - M6 CCTV sekarang **SELESAI** sesuai keputusan baru ini (bukan ditunda lagi) -- beda dari rencana awal PRD §19 yang butuh integrasi API + gateway custom.
+
+## 10 Oktober 2026 — Mobile: fitur IPL (daftar tagihan, instruksi BCA, upload bukti)
+
+- **Alur**: daftar tagihan (`/ipl`) -> detail (`/ipl/:id`) -> instruksi transfer BCA dari backend (`getPaymentInstructions`, nomor rekening TIDAK di-hardcode di client) -> pilih foto bukti -> `uploadPaymentProof` (backend validasi & re-encode gambar) -> `submitPayment` dengan `requestId` sekali per sesi layar (retry tidak bikin pembayaran dobel).
+- **Baca data**: daftar tagihan dibaca langsung dari Firestore `ipl_bills` (rules sudah membatasi ke rumah sendiri). Semua aksi tulis lewat Cloud Functions, client TIDAK PERNAH set status `PAID` (sesuai aturan bisnis).
+- **Index baru**: `ipl_bills` (`houseId` ASC, `period` DESC) ditambahkan ke `firestore.indexes.json` -- query daftar tagihan butuh ini.
+- **Paket baru**: `image_picker` (pilih foto bukti dari galeri).
+- Status tagihan ditampilkan sebagai chip berwarna; tombol kirim hanya muncul untuk tagihan UNPAID/OVERDUE.
+- `flutter analyze`: 0 masalah. `flutter test`: 7/7 PASS (termasuk unit test model: pemetaan status, aturan `canPay`, format rupiah).
+- **BELUM dites end-to-end** (pilih foto -> upload -> submit di simulator dengan data emulator). Perlu Leo jalankan sendiri: `npm run emulators`, `npm run seed:local`, lalu `flutter run`.
+- Belum: Pengumuman, Agenda, Laporan, Keuangan, Profil di mobile masih placeholder.

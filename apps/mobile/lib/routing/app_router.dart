@@ -5,6 +5,8 @@ import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/providers/auth_providers.dart';
 import '../features/cctv/presentation/cctv_screen.dart';
 import '../features/home/presentation/home_screen.dart';
+import '../features/ipl/presentation/ipl_detail_screen.dart';
+import '../features/ipl/presentation/ipl_list_screen.dart';
 import '../shared/widgets/coming_soon_screen.dart';
 
 /// Protected routing (PRD §9.4) -- redirect berbasis status login.
@@ -30,7 +32,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
-      GoRoute(path: '/ipl', builder: (context, state) => const ComingSoonScreen(title: 'IPL')),
+      GoRoute(path: '/ipl', builder: (context, state) => const IplListScreen()),
+      GoRoute(
+        path: '/ipl/:id',
+        builder: (context, state) => IplDetailScreen(billId: state.pathParameters['id']!),
+      ),
       GoRoute(path: '/cctv', builder: (context, state) => const CctvScreen()),
       GoRoute(path: '/informasi', builder: (context, state) => const ComingSoonScreen(title: 'Informasi')),
       GoRoute(path: '/profile', builder: (context, state) => const ComingSoonScreen(title: 'Profil')),
