@@ -1,5 +1,7 @@
 import {createHash} from 'node:crypto';
 import {getFirestore, Timestamp, Transaction} from 'firebase-admin/firestore';
+import {getStorage} from 'firebase-admin/storage';
+import {sanitizeProof} from './proofs';
 import {HttpsError} from 'firebase-functions/v2/https';
 
 const RELATIONSHIPS = ['PASANGAN', 'ANAK', 'ORANG_TUA', 'LAINNYA'];
@@ -174,8 +176,21 @@ export async function listFamilyMembers(uid: string, input: unknown) {
 
 // --- Kendaraan --------------------------------------------------------------
 
+const vehiclePhotoPath = (vehicleId: string) => `vehicle-photos/${vehicleId}/photo.jpg`;
+
+async function uploadVehiclePhoto(vehicleId: string, image: Buffer) {
+  await getStorage().bucket().file(vehiclePhotoPath(vehicleId)).save(image, {
+    resumable: false,
+    metadata: {contentType: 'image/jpeg', cacheControl: 'private, no-store'},
+  });
+}
+
+// Foto kendaraan WAJIB saat mendaftarkan kendaraan baru (STNK/kendaraan
+// tampak depan -- keputusan Product Owner 10 Okt 2026). Saat ubah data,
+// foto boleh diganti. Otorisasi (kepala keluarga + rumah sendiri) dicek
+// SEBELUM foto diunggah, supaya tidak ada yang bisa menimpa foto rumah lain.
 export async function saveVehicle(uid: string, input: unknown) {
-  const d = payload(input, ['requestId', 'vehicleId', 'plateNumber', 'type', 'brand', 'color', 'expectedVersion']);
+  const d = payload(input, ['requestId', 'vehicleId', 'plateNumber', 'type', 'brand', 'color', 'photoBase64', 'expectedVersion']);
   const plate = plateNumber(d.plateNumber);
   const type = vehicleType(d.type);
   const brand = optionalText(d.brand);
@@ -187,16 +202,31 @@ export async function saveVehicle(uid: string, input: unknown) {
     const vehicleId = digest(uid, requestId);
     const signature = digest(plate, type, brand, color);
     const ref = db.doc(`vehicles/${vehicleId}`);
-    return db.runTransaction(async tx => {
+
+    const gate = await db.runTransaction(async tx => {
       const user = await requireHead(tx, uid);
+      const existing = (await tx.get(ref)).data();
+      if (existing) {
+        if (existing.signature !== signature) throw new HttpsError('already-exists', 'Request ID telah dipakai.');
+        return {done: true as const, version: existing.version as number};
+      }
+      return {done: false as const, user};
+    });
+    if (gate.done) return {vehicleId, version: gate.version};
+
+    if (d.photoBase64 === undefined) throw new HttpsError('invalid-argument', 'Foto kendaraan wajib dilampirkan.');
+    const image = await sanitizeProof(d.photoBase64);
+    await uploadVehiclePhoto(vehicleId, image);
+
+    return db.runTransaction(async tx => {
       const existing = (await tx.get(ref)).data();
       if (existing) {
         if (existing.signature !== signature) throw new HttpsError('already-exists', 'Request ID telah dipakai.');
         return {vehicleId, version: existing.version};
       }
       const now = Timestamp.now();
-      tx.create(ref, {houseId: identifier(user!.houseId), plateNumber: plate, type, brand, color, active: true, signature, version: 1, createdBy: uid, createdAt: now, updatedAt: now});
-      audit(tx, uid, user!.role, 'CREATE_VEHICLE', vehicleId, null, {plateNumber: plate, type});
+      tx.create(ref, {houseId: identifier(gate.user!.houseId), plateNumber: plate, type, brand, color, photoPath: vehiclePhotoPath(vehicleId), active: true, signature, version: 1, createdBy: uid, createdAt: now, updatedAt: now});
+      audit(tx, uid, gate.user!.role, 'CREATE_VEHICLE', vehicleId, null, {plateNumber: plate, type});
       return {vehicleId, version: 1};
     });
   }
@@ -204,17 +234,48 @@ export async function saveVehicle(uid: string, input: unknown) {
   const vehicleId = identifier(d.vehicleId);
   const expectedVersion = version(d.expectedVersion);
   const ref = db.doc(`vehicles/${vehicleId}`);
-  return db.runTransaction(async tx => {
+
+  const gate = await db.runTransaction(async tx => {
     const user = await requireHead(tx, uid);
     const existing = (await tx.get(ref)).data();
     if (!existing || existing.active === false) throw new HttpsError('not-found', 'Kendaraan tidak ditemukan.');
     if (existing.houseId !== user!.houseId) throw new HttpsError('permission-denied', 'Bukan kendaraan rumah Anda.');
     if (existing.version !== expectedVersion) throw new HttpsError('failed-precondition', 'Data sudah diubah; muat ulang.');
+    return {user: user!, existing};
+  });
+
+  if (d.photoBase64 !== undefined) {
+    const image = await sanitizeProof(d.photoBase64);
+    await uploadVehiclePhoto(vehicleId, image);
+  }
+
+  return db.runTransaction(async tx => {
+    const existing = (await tx.get(ref)).data();
+    if (!existing || existing.active === false) throw new HttpsError('not-found', 'Kendaraan tidak ditemukan.');
+    if (existing.version !== expectedVersion) throw new HttpsError('failed-precondition', 'Data sudah diubah; muat ulang.');
     const now = Timestamp.now(), newVersion = expectedVersion + 1;
-    tx.update(ref, {plateNumber: plate, type, brand, color, version: newVersion, updatedAt: now});
-    audit(tx, uid, user!.role, 'UPDATE_VEHICLE', vehicleId, {plateNumber: existing.plateNumber, type: existing.type}, {plateNumber: plate, type});
+    const updates: Record<string, unknown> = {plateNumber: plate, type, brand, color, version: newVersion, updatedAt: now};
+    if (d.photoBase64 !== undefined) updates.photoPath = vehiclePhotoPath(vehicleId);
+    tx.update(ref, updates);
+    audit(tx, uid, gate.user.role, 'UPDATE_VEHICLE', vehicleId, {plateNumber: existing.plateNumber, type: existing.type}, {plateNumber: plate, type, photoReplaced: d.photoBase64 !== undefined});
     return {vehicleId, version: newVersion};
   });
+}
+
+// Foto kendaraan hanya untuk anggota rumah yang bersangkutan (warga aktif
+// dengan houseId yang sama). Dikembalikan base64 sementara, tidak ada URL publik.
+export async function getVehiclePhoto(uid: string, input: unknown) {
+  const d = payload(input, ['vehicleId']);
+  const vehicleId = identifier(d.vehicleId);
+  const db = getFirestore();
+  const user = (await db.doc(`users/${uid}`).get()).data();
+  const vehicle = (await db.doc(`vehicles/${vehicleId}`).get()).data();
+  if (!user || user.active !== true || !vehicle || vehicle.active === false || vehicle.houseId !== user.houseId) {
+    throw new HttpsError('permission-denied', 'Foto tidak dapat diakses.');
+  }
+  if (typeof vehicle.photoPath !== 'string') throw new HttpsError('not-found', 'Foto belum ada.');
+  const [image] = await getStorage().bucket().file(vehicle.photoPath).download();
+  return {contentType: 'image/jpeg', imageBase64: image.toString('base64')};
 }
 
 export async function removeVehicle(uid: string, input: unknown) {
@@ -242,7 +303,7 @@ export async function listVehicles(uid: string, input: unknown) {
     const found = await tx.get(db.collection('vehicles').where('houseId', '==', identifier(user!.houseId)));
     return {items: found.docs.filter(x => x.data().active !== false).map(x => {
       const r = x.data();
-      return {id: x.id, plateNumber: r.plateNumber, type: r.type, brand: r.brand, color: r.color, version: r.version};
+      return {id: x.id, plateNumber: r.plateNumber, type: r.type, brand: r.brand, color: r.color, version: r.version, hasPhoto: typeof r.photoPath === 'string'};
     })};
   });
 }

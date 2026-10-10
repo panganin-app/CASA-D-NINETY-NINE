@@ -12,7 +12,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
     (
       'Data yang kami kumpulkan',
       'Nama lengkap, nomor telepon, email, nomor rumah, status hunian, data anggota keluarga '
-          'yang Anda masukkan, data kendaraan (plat, jenis, merek, warna), bukti transfer pembayaran IPL/internet, '
+          'yang Anda masukkan, data kendaraan (plat, jenis, merek, warna) beserta foto kendaraan, bukti transfer pembayaran IPL/internet, '
           'serta isi laporan yang Anda kirim.',
     ),
     (
@@ -31,9 +31,11 @@ class PrivacyPolicyScreen extends StatelessWidget {
           'dan layanan Hikvision di luar aplikasi ini, mengikuti kebijakan privasi Hikvision.',
     ),
     (
-      'Penyimpanan dan jangka waktu',
-      'Data disimpan selama Anda menjadi warga komplek. [DRAFT: jangka waktu penyimpanan setelah Anda pindah '
-          'atau nonaktif belum ditetapkan pengurus.]',
+      'Penyimpanan dan penghapusan akun',
+      'Data disimpan selama Anda menjadi warga komplek. Anda dapat meminta hapus akun dari menu Profil. '
+          'Akun langsung dikunci, dan data pribadi (nama, telepon, email, data keluarga dan kendaraan) dihapus '
+          'otomatis setelah 14 hari. Selama 14 hari, pengurus dapat memulihkan akun atas permintaan Anda. '
+          'Riwayat pembayaran dan laporan tetap disimpan sebagai catatan rumah.',
     ),
     (
       'Hak Anda',

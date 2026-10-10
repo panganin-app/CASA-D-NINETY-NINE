@@ -1,6 +1,7 @@
 import {initializeApp} from 'firebase-admin/app';
 import {getFirestore} from 'firebase-admin/firestore';
 import {onCall, HttpsError} from 'firebase-functions/v2/https';
+import {onSchedule} from 'firebase-functions/v2/scheduler';
 import {IPL_AMOUNT, INTERNET_PACKAGES} from './domain';
 
 initializeApp();
@@ -66,6 +67,16 @@ export const listFamilyMembers = callable(household.listFamilyMembers);
 export const saveVehicle = callable(household.saveVehicle);
 export const removeVehicle = callable(household.removeVehicle);
 export const listVehicles = callable(household.listVehicles);
+export const getVehiclePhoto = callable(household.getVehiclePhoto);
+
+import * as accountDeletion from './account-deletion';
+export const requestAccountDeletion = callable(accountDeletion.requestAccountDeletion);
+export const restoreAccount = callable(accountDeletion.restoreAccount);
+export const purgeExpiredAccounts = callable(accountDeletion.purgeExpiredAccounts);
+// Pembersihan otomatis tiap hari jam 03:00 WIB (akun yang sudah lewat 14 hari).
+export const purgeExpiredAccountsDaily = onSchedule({region: 'asia-southeast2', schedule: 'every day 03:00', timeZone: 'Asia/Jakarta'}, async () => {
+  await accountDeletion.purgeDue(50, 'system', 'scheduler');
+});
 
 import * as systemSettings from './system-settings';
 export const getSystemSettings = callable(systemSettings.getSystemSettings);

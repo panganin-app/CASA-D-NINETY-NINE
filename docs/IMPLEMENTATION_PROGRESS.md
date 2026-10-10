@@ -219,3 +219,14 @@ Folder project di-**rename** dari `CASA D'NINETY NINE` -> `CASA DNINETY NINE` (a
 - Perbaikan kecil: generator token menulis CSS admin, output Dart tidak berubah.
 - `flutter analyze`: 0 masalah. `flutter test`: 33/33 PASS. `tsc`: bersih. Build statis admin: 12 halaman.
 - **Belum dites langsung di browser/simulator** setelah perubahan ini (lihat `docs/runbooks/PUBLISH_LOCAL.md`).
+
+## 10 Oktober 2026 — Foto kendaraan wajib, hapus akun dengan masa 14 hari
+
+- **Foto kendaraan wajib saat mendaftar** (keputusan Product Owner). Backend menolak tanpa foto. Ubah data boleh tanpa foto (foto lama tetap). Foto diunggah ke `vehicle-photos/{id}/photo.jpg` (privat, di-re-encode lewat `sanitizeProof`). Hanya kepala keluarga yang bisa mengganti foto, dan otorisasi dicek sebelum upload. Dibaca lewat `getVehiclePhoto` hanya oleh warga rumah yang sama (base64 sementara, tanpa URL publik). `listVehicles` memberi tanda `hasPhoto`.
+- **Hapus akun** (Profil > Akun > Hapus Akun): `requestAccountDeletion` mengunci akun (Firebase Auth disabled + `users.active=false`), menandai `deletionPurgeAfter` = +14 hari. Minta lagi tidak menggeser jadwal.
+- **Pemulihan** (`restoreAccount`, pengurus, wajib alasan, hanya sebelum 14 hari).
+- **Pembersihan** (`purgeDue`): hapus dokumen `users`/`residents`, notifikasi, akun Auth, lepas `primaryResidentId` rumah; riwayat pembayaran & laporan dipertahankan. Dijalankan otomatis tiap hari 03:00 WIB (`purgeExpiredAccountsDaily`, Cloud Scheduler) dan manual lewat `purgeExpiredAccounts`. Setiap langkah dicatat di audit log.
+- Kebijakan privasi (draf) diperbarui: foto kendaraan dan aturan 14 hari.
+- Tes emulator: 49/49 (termasuk foto, pemulihan, pembersihan, idempotensi).
+- Mobile: analyze bersih, tes lulus.
+- **Perlu diketahui Leo**: penjadwalan (`onSchedule`) membutuhkan Cloud Scheduler, yang aktif hanya pada project Blaze. Belum diuji di Cloud sungguhan. Pemulihan belum ada di Admin Web (hanya lewat fungsi `restoreAccount`).

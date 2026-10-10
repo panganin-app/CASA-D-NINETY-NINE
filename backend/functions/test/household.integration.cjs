@@ -3,11 +3,13 @@ const assert = require('node:assert/strict');
 const {randomUUID} = require('node:crypto');
 const {initializeApp,deleteApp} = require('firebase-admin/app');
 const {getFirestore} = require('firebase-admin/firestore');
-const {updateResidentProfile,saveFamilyMember,removeFamilyMember,listFamilyMembers,saveVehicle,removeVehicle,listVehicles} = require('../lib/household');
+const {updateResidentProfile,saveFamilyMember,removeFamilyMember,listFamilyMembers,saveVehicle,removeVehicle,listVehicles,getVehiclePhoto} = require('../lib/household');
+const sharp = require('sharp');
+async function photo(){return (await sharp({create:{width:40,height:30,channels:3,background:'#c99a43'}}).jpeg().toBuffer()).toString('base64');}
 const {transferHouse} = require('../lib/operations');
 assert.ok(process.env.FIRESTORE_EMULATOR_HOST, 'Emulator required');
 assert.equal(process.env.GCLOUD_PROJECT, 'demo-casa-billing');
-const app=initializeApp({projectId:'demo-casa-billing'}), db=getFirestore();
+const app=initializeApp({projectId:'demo-casa-billing',storageBucket:'demo-casa-billing.firebasestorage.app'}), db=getFirestore();
 const tag=randomUUID(), head=`h-${tag}`, spouse=`s-${tag}`, admin=`a-${tag}`, house=`house-${tag}`;
 before(async()=>{
  await db.doc(`users/${head}`).set({active:true,role:'resident',houseId:house,isHead:true,displayName:'Head'});
@@ -56,8 +58,9 @@ test('listFamilyMembers: scoped to own house, excludes removed',async()=>{
 });
 
 test('saveVehicle/listVehicles: validation and own-house scoping',async()=>{
- await assert.rejects(saveVehicle(head,{requestId:randomUUID(),plateNumber:'??',type:'MOBIL'}),{code:'invalid-argument'});
- const created=await saveVehicle(head,{requestId:randomUUID(),plateNumber:'b 1234 xyz',type:'MOBIL',brand:'Toyota'});
+ await assert.rejects(saveVehicle(head,{requestId:randomUUID(),plateNumber:'??',type:'MOBIL',photoBase64:await photo()}),{code:'invalid-argument'});
+ await assert.rejects(saveVehicle(head,{requestId:randomUUID(),plateNumber:'B 9 Z',type:'MOBIL'}),{code:'invalid-argument',message:/Foto kendaraan wajib/});
+ const created=await saveVehicle(head,{requestId:randomUUID(),plateNumber:'b 1234 xyz',type:'MOBIL',brand:'Toyota',photoBase64:await photo()});
  const stored=(await db.doc(`vehicles/${created.vehicleId}`).get()).data();
  assert.equal(stored.plateNumber,'B 1234 XYZ');
  const list=await listVehicles(head,{});
@@ -69,7 +72,7 @@ test('saveVehicle/listVehicles: validation and own-house scoping',async()=>{
 
 test('transferHouse: committee only, deactivates all residents/family/vehicles, idempotent retry, house freed',async()=>{
  await saveFamilyMember(head,{requestId:randomUUID(),fullName:'Anak Dua',relationship:'ANAK'});
- await saveVehicle(head,{requestId:randomUUID(),plateNumber:'B 2222 XYZ',type:'MOTOR'});
+ await saveVehicle(head,{requestId:randomUUID(),plateNumber:'B 2222 XYZ',type:'MOTOR',photoBase64:await photo()});
  await assert.rejects(transferHouse(head,{houseId:house,reason:'pindah',requestId:randomUUID()}),{code:'permission-denied'});
  const requestId=randomUUID();
  const results=await Promise.all([
@@ -92,4 +95,30 @@ test('transferHouse: committee only, deactivates all residents/family/vehicles, 
  for(const doc of vehicleSnap.docs) assert.equal(doc.data().active,false);
  const logs=await db.collection('audit_logs').where('resourceId','==',house).where('action','==','TRANSFER_HOUSE').get();
  assert.equal(logs.size,1);
+});
+
+const photoHead=`ph-${tag}`, photoHouse=`photo-house-${tag}`, photoOther=`po-${tag}`;
+async function photoSetup(){
+ await db.doc(`users/${photoHead}`).set({active:true,role:'resident',houseId:photoHouse,isHead:true,displayName:'Foto'});
+ await db.doc(`users/${photoOther}`).set({active:true,role:'resident',houseId:'lain-'+tag,isHead:false,displayName:'Lain'});
+ await db.doc(`houses/${photoHouse}`).set({active:true,primaryResidentId:photoHead});
+}
+test('vehicle photo: returned only to same house, stored privately, flag in list',async()=>{
+ await photoSetup();
+ const created=await saveVehicle(photoHead,{requestId:randomUUID(),plateNumber:'B 7777 FOTO',type:'MOTOR',photoBase64:await photo()});
+ const list=await listVehicles(photoHead,{});
+ assert.equal(list.items.find(x=>x.id===created.vehicleId).hasPhoto,true);
+ const img=await getVehiclePhoto(photoHead,{vehicleId:created.vehicleId});
+ assert.equal(img.contentType,'image/jpeg');
+ assert.ok(img.imageBase64.length>100);
+ await assert.rejects(getVehiclePhoto(photoOther,{vehicleId:created.vehicleId}),{code:'permission-denied'});
+});
+
+test('vehicle photo: edit without photo keeps the old one; photo cannot be replaced by a non-head',async()=>{
+ await photoSetup();
+ const created=await saveVehicle(photoHead,{requestId:randomUUID(),plateNumber:'B 8888 EDIT',type:'MOBIL',photoBase64:await photo()});
+ await saveVehicle(photoHead,{vehicleId:created.vehicleId,expectedVersion:created.version,plateNumber:'B 8888 EDIT',type:'MOBIL',brand:'Honda'});
+ const img=await getVehiclePhoto(photoHead,{vehicleId:created.vehicleId});
+ assert.ok(img.imageBase64.length>100);
+ await assert.rejects(saveVehicle(photoOther,{vehicleId:created.vehicleId,expectedVersion:created.version+1,plateNumber:'B 8888 EDIT',type:'MOBIL',photoBase64:await photo()}),{code:'permission-denied'});
 });

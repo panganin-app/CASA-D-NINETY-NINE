@@ -1,5 +1,7 @@
 import 'dart:math';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/errors/app_exception.dart';
@@ -300,6 +302,27 @@ class _FamilySection extends ConsumerWidget {
   }
 }
 
+class _VehicleThumb extends ConsumerWidget {
+  const _VehicleThumb({required this.vehicle});
+
+  final VehicleItem vehicle;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!vehicle.hasPhoto) return const Icon(Icons.directions_car_rounded);
+    final photo = ref.watch(vehiclePhotoProvider(vehicle.id));
+    return photo.maybeWhen(
+      data: (bytes) => bytes == null
+          ? const Icon(Icons.directions_car_rounded)
+          : ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: Image.memory(bytes, width: 48, height: 48, fit: BoxFit.cover),
+            ),
+      orElse: () => const SizedBox(width: 48, height: 48, child: Center(child: CircularProgressIndicator(strokeWidth: 2))),
+    );
+  }
+}
+
 class _VehicleSection extends ConsumerWidget {
   const _VehicleSection();
 
@@ -325,7 +348,7 @@ class _VehicleSection extends ConsumerWidget {
                 children: [
                   for (final v in items)
                     ListTile(
-                      leading: const Icon(Icons.directions_car_rounded),
+                      leading: _VehicleThumb(vehicle: v),
                       title: Text(v.plateNumber),
                       subtitle: Text(
                         [VehicleType.labelOf(v.type), v.brand, v.color].whereType<String>().where((x) => x.isNotEmpty).join(' · '),
@@ -356,6 +379,7 @@ class _VehicleSection extends ConsumerWidget {
           (t) => t.code == existing.type,
           orElse: () => VehicleType.lainnya,
         );
+    Uint8List? photo;
     final requestId = _newRequestId();
 
     final saved = await showDialog<bool>(
@@ -367,6 +391,27 @@ class _VehicleSection extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (photo != null)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.memory(photo!, height: 120, fit: BoxFit.cover),
+                  )
+                else if (existing?.hasPhoto ?? false)
+                  const Text('Foto sudah ada. Pilih lagi untuk menggantinya.')
+                else
+                  const Text('Foto kendaraan wajib dilampirkan.'),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final picked = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 2000);
+                    if (picked == null) return;
+                    final bytes = await picked.readAsBytes();
+                    setD(() => photo = bytes);
+                  },
+                  icon: const Icon(Icons.photo_camera_rounded),
+                  label: Text(photo == null ? 'Pilih foto' : 'Ganti foto'),
+                ),
+                const SizedBox(height: 12),
                 TextField(
                   controller: plateCtrl,
                   textCapitalization: TextCapitalization.characters,
@@ -401,6 +446,12 @@ class _VehicleSection extends ConsumerWidget {
     colorCtrl.dispose();
     if (saved != true || plate.isEmpty || !context.mounted) return;
 
+    // Foto wajib untuk kendaraan baru; backend juga menolak tanpa foto.
+    if (existing == null && photo == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Foto kendaraan wajib dilampirkan.')));
+      return;
+    }
+
     try {
       final repo = ref.read(profilRepositoryProvider);
       if (existing == null) {
@@ -408,6 +459,7 @@ class _VehicleSection extends ConsumerWidget {
           requestId: requestId,
           plateNumber: plate,
           type: type,
+          photo: photo!,
           brand: brand.isEmpty ? null : brand,
           color: color.isEmpty ? null : color,
         );
@@ -416,11 +468,13 @@ class _VehicleSection extends ConsumerWidget {
           vehicle: existing,
           plateNumber: plate,
           type: type,
+          photo: photo,
           brand: brand.isEmpty ? null : brand,
           color: color.isEmpty ? null : color,
         );
       }
       ref.invalidate(vehiclesProvider);
+      ref.invalidate(vehiclePhotoProvider);
     } on AppException catch (e) {
       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
     }
@@ -505,19 +559,60 @@ class _Note extends StatelessWidget {
   }
 }
 
-class _AccountSection extends StatelessWidget {
+class _AccountSection extends ConsumerWidget {
   const _AccountSection();
 
+  Future<void> _requestDeletion(BuildContext context, WidgetRef ref) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hapus akun?'),
+        content: const Text(
+          'Akun Anda akan langsung dikunci dan tidak bisa masuk. Data pribadi akan dihapus setelah 14 hari. '
+          'Selama 14 hari, Anda dapat meminta pengurus memulihkan akun. Riwayat pembayaran dan laporan tetap '
+          'disimpan sebagai catatan rumah.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: CasaTokens.colorSemanticError),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Ya, hapus akun'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref.read(profilRepositoryProvider).requestAccountDeletion();
+      messenger.showSnackBar(const SnackBar(content: Text('Permintaan hapus akun diterima.')));
+      await ref.read(authRepositoryProvider).signOut();
+    } on AppException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return _SectionCard(
       title: 'Akun',
-      child: ListTile(
-        leading: const Icon(Icons.lock_rounded),
-        title: const Text('Ubah Kata Sandi'),
-        subtitle: const Text('Ganti kata sandi akun Anda'),
-        trailing: const Icon(Icons.chevron_right_rounded),
-        onTap: () => context.push('/profile/password'),
+      child: Column(
+        children: [
+          ListTile(
+            leading: const Icon(Icons.lock_rounded),
+            title: const Text('Ubah Kata Sandi'),
+            subtitle: const Text('Ganti kata sandi akun Anda'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => context.push('/profile/password'),
+          ),
+          ListTile(
+            leading: Icon(Icons.delete_outline_rounded, color: CasaTokens.colorSemanticError),
+            title: Text('Hapus Akun', style: TextStyle(color: CasaTokens.colorSemanticError)),
+            subtitle: const Text('Akun dikunci dan dihapus setelah 14 hari'),
+            onTap: () => _requestDeletion(context, ref),
+          ),
+        ],
       ),
     );
   }

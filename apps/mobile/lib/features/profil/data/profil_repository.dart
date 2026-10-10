@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/network/functions_client.dart';
@@ -88,10 +90,12 @@ class ProfilRepository {
     await _functions.call('removeFamilyMember', {'familyMemberId': member.id, 'expectedVersion': member.version});
   }
 
+  /// Foto kendaraan WAJIB saat mendaftar (`photo` harus ada). Saat ubah, `photo` opsional.
   Future<void> saveVehicle({
     required String requestId,
     required String plateNumber,
     required VehicleType type,
+    required Uint8List photo,
     String? brand,
     String? color,
   }) async {
@@ -99,6 +103,7 @@ class ProfilRepository {
       'requestId': requestId,
       'plateNumber': plateNumber,
       'type': type.code,
+      'photoBase64': base64Encode(photo),
       'brand': ?brand,
       'color': ?color,
     });
@@ -108,6 +113,7 @@ class ProfilRepository {
     required VehicleItem vehicle,
     required String plateNumber,
     required VehicleType type,
+    Uint8List? photo,
     String? brand,
     String? color,
   }) async {
@@ -116,9 +122,23 @@ class ProfilRepository {
       'expectedVersion': vehicle.version,
       'plateNumber': plateNumber,
       'type': type.code,
+      'photoBase64': ?(photo == null ? null : base64Encode(photo)),
       'brand': ?brand,
       'color': ?color,
     });
+  }
+
+  /// Foto kendaraan (hanya anggota rumah yang bersangkutan).
+  Future<Uint8List> getVehiclePhoto(String vehicleId) async {
+    final result = await _functions.call('getVehiclePhoto', {'vehicleId': vehicleId});
+    return base64Decode(result['imageBase64'] as String);
+  }
+
+  /// Minta penghapusan akun. Akun langsung dikunci dan dihapus setelah 14 hari.
+  Future<DateTime?> requestAccountDeletion() async {
+    final result = await _functions.call('requestAccountDeletion');
+    final raw = result['purgeAfter'] as String?;
+    return raw == null ? null : DateTime.tryParse(raw);
   }
 
   Future<void> removeVehicle(VehicleItem vehicle) async {

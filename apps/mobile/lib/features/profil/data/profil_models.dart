@@ -96,6 +96,7 @@ class VehicleItem {
     required this.version,
     this.brand,
     this.color,
+    this.hasPhoto = false,
   });
 
   final String id;
@@ -104,6 +105,7 @@ class VehicleItem {
   final int version;
   final String? brand;
   final String? color;
+  final bool hasPhoto;
 
   factory VehicleItem.fromMap(Map<String, dynamic> map) {
     return VehicleItem(
@@ -113,6 +115,7 @@ class VehicleItem {
       version: (map['version'] as num?)?.toInt() ?? 1,
       brand: map['brand'] as String?,
       color: map['color'] as String?,
+      hasPhoto: map['hasPhoto'] == true,
     );
   }
 }
