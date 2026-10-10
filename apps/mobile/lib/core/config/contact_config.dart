@@ -13,18 +13,21 @@ class ContactItem {
 
 const List<ContactItem> pengurusContacts = [
   ContactItem(
-    label: 'Ketua Pengurus',
+    label: 'Ketua Pengurus (Eki Iswatoro)',
     description: 'Pertanyaan umum, kebijakan komplek, dan keputusan pengurus.',
-    // TODO(pengurus): isi nomor ketua pengurus.
+    phone: '6287780009065',
+    whatsapp: '6287780009065',
   ),
   ContactItem(
-    label: 'Keuangan / Bendahara',
+    label: 'Bendahara (Dimas)',
     description: 'Pertanyaan pembayaran IPL dan internet, serta verifikasi bukti transfer.',
-    // TODO(pengurus): isi nomor bendahara.
+    phone: '6285781719262',
+    whatsapp: '6285781719262',
   ),
   ContactItem(
-    label: 'Keamanan',
-    description: 'Laporan gangguan keamanan darurat. Untuk keadaan darurat, hubungi 110 atau 112.',
-    // TODO(pengurus): isi nomor pos keamanan.
+    label: 'Keamanan (Lutfi)',
+    description: 'Laporan gangguan keamanan. Untuk keadaan darurat, hubungi 110 atau 112.',
+    phone: '6281288989786',
+    whatsapp: '6281288989786',
   ),
 ];
