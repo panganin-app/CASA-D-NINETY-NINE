@@ -13,7 +13,7 @@ class ContactItem {
 
 const List<ContactItem> pengurusContacts = [
   ContactItem(
-    label: 'Ketua Pengurus (Eki Iswatoro)',
+    label: 'Ketua Pengurus (Eki)',
     description: 'Pertanyaan umum, kebijakan komplek, dan keputusan pengurus.',
     phone: '6287780009065',
     whatsapp: '6287780009065',
