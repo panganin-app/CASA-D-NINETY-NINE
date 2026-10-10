@@ -7,7 +7,8 @@
     "emulators": "npm run build && node scripts/emulators.mjs start",
     "test:rules": "node scripts/emulators.mjs test",
     "test:billing": "npm run build && node scripts/emulators.mjs billing",
-    "seed:local": "node scripts/seed-local.mjs"
+    "seed:local": "node scripts/seed-local.mjs",
+    "drill:backup-restore": "npm run build && node scripts/backup-restore-drill.mjs"
   },
   "devDependencies": {
     "firebase-tools": "15.31.0",

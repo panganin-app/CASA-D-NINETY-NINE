@@ -8,4 +8,4 @@ lib/
 firebase-debug.*
 .DS_Store
 
-.firebase.test.local.json
+.firebase.*.local.json
