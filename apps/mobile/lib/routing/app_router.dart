@@ -6,6 +6,7 @@ import '../features/auth/providers/auth_providers.dart';
 import '../features/cctv/presentation/cctv_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/ipl/presentation/ipl_detail_screen.dart';
+import '../features/informasi/presentation/informasi_screens.dart';
 import '../features/ipl/presentation/ipl_list_screen.dart';
 import '../features/reports/presentation/reports_screens.dart';
 import '../shared/widgets/coming_soon_screen.dart';
@@ -39,7 +40,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => IplDetailScreen(billId: state.pathParameters['id']!),
       ),
       GoRoute(path: '/cctv', builder: (context, state) => const CctvScreen()),
-      GoRoute(path: '/informasi', builder: (context, state) => const ComingSoonScreen(title: 'Informasi')),
+      GoRoute(path: '/informasi', builder: (context, state) => const InformasiScreen()),
       GoRoute(path: '/reports', builder: (context, state) => const ReportHistoryScreen()),
       GoRoute(path: '/reports/new', builder: (context, state) => const ReportCreateScreen()),
       GoRoute(path: '/profile', builder: (context, state) => const ComingSoonScreen(title: 'Profil')),

@@ -162,3 +162,14 @@ Folder project di-**rename** dari `CASA D'NINETY NINE` -> `CASA DNINETY NINE` (a
 - `flutter analyze`: 0 masalah. `flutter test`: 11/11 PASS (termasuk unit test pemetaan status, daftar kategori vs backend, dan label kategori).
 - **BELUM dites end-to-end** di simulator. Lampiran foto laporan belum ada (backend belum menyediakannya).
 - Belum: Pengumuman/Agenda (Informasi, masih placeholder), Keuangan, Profil, dan detail laporan (riwayat event status belum ditampilkan).
+
+## 10 Oktober 2026 — Mobile: Informasi (Pengumuman & Agenda)
+
+- Layar Informasi dengan dua tab (Pengumuman, Agenda), sesuai handoff UI/UX bagian Informasi.
+- Data dibaca lewat callable `listPublishedContent` -- backend yang menyaring status PUBLISHED dan memaginasi hasil (`limit` + `afterId`). Client tidak pernah melihat draft atau arsip.
+- Paginasi: halaman berikutnya dimuat saat daftar mendekati akhir; tarik untuk memuat ulang dari awal.
+- Agenda menampilkan waktu mulai dan lokasi bila tersedia. Waktu yang tidak bisa diparse dibiarkan kosong supaya tampilan tidak gagal.
+- Tidak ada index baru: query dilakukan backend, bukan client.
+- `flutter analyze`: 0 masalah. `flutter test`: 16/16 PASS (termasuk unit test parsing pengumuman/agenda dan format waktu).
+- **BELUM dites end-to-end** di simulator. Detail konten (layar baca penuh, bagikan, simpan agenda) belum dibuat -- saat ini daftar hanya menampilkan ringkasan.
+- Belum: Keuangan, Profil, detail pengumuman/agenda, dan fitur simpan/bagikan dari handoff.
